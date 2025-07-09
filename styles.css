@@ -114,6 +114,7 @@ h1 {
     margin-top: 8px;
     padding-top: 8px;
     border-top: 1px solid #eee;
+    padding-right: 70px; /* Add padding to prevent overlap with priority badge */
 }
 
 .card-due-date.overdue {
@@ -175,6 +176,8 @@ h1 {
     right: 8px;
     opacity: 0;
     transition: opacity 0.2s;
+    display: flex;
+    gap: 2px;
 }
 
 .card:hover .card-actions {
@@ -185,11 +188,11 @@ h1 {
     background: none;
     border: none;
     cursor: pointer;
-    padding: 4px;
-    margin-left: 4px;
+    padding: 3px;
     border-radius: 3px;
     color: #666;
     font-size: 0.8rem;
+    line-height: 1;
 }
 
 .card-action-btn:hover {
@@ -323,4 +326,137 @@ h1 {
     h1 {
         font-size: 2rem;
     }
+}
+/* Priority Styles */
+.priority-container {
+    margin-bottom: 16px;
+}
+
+.priority-container label {
+    display: block;
+    margin-bottom: 6px;
+    color: #333;
+    font-size: 0.9rem;
+}
+
+.priority-options {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.priority-option {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.priority-option input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.priority-badge {
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.priority-option input:checked + .priority-badge {
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.2);
+}
+
+.priority-badge.high {
+    background-color: #ffcdd2;
+    color: #c62828;
+}
+
+.priority-badge.medium {
+    background-color: #fff9c4;
+    color: #f57f17;
+}
+
+.priority-badge.low {
+    background-color: #c8e6c9;
+    color: #2e7d32;
+}
+
+.priority-badge.none {
+    background-color: #e0e0e0;
+    color: #757575;
+}
+
+/* Card Priority Display */
+.card-priority {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+
+.card-priority.high {
+    background-color: #ffcdd2;
+    color: #c62828;
+}
+
+.card-priority.medium {
+    background-color: #fff9c4;
+    color: #f57f17;
+}
+
+.card-priority.low {
+    background-color: #c8e6c9;
+    color: #2e7d32;
+}
+
+/* Labels Styles */
+.labels-container {
+    margin-bottom: 16px;
+}
+
+.labels-container label {
+    display: block;
+    margin-bottom: 6px;
+    color: #333;
+    font-size: 0.9rem;
+}
+
+#card-labels {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 1rem;
+}
+
+#card-labels:focus {
+    outline: none;
+    border-color: #0079bf;
+}
+
+.card-labels {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 8px;
+    margin-bottom: 8px;
+}
+
+.card-label {
+    background-color: #e4f0f6;
+    color: #0079bf;
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 3px;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }

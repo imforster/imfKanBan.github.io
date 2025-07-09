@@ -70,6 +70,8 @@ class TrelloBoard {
         const cardTitle = document.getElementById('card-title');
         const cardDescription = document.getElementById('card-description');
         const cardDueDate = document.getElementById('card-due-date');
+        const cardLabels = document.getElementById('card-labels');
+        const priorityRadios = document.querySelectorAll('input[name="priority"]');
 
         if (card) {
             // Editing existing card
@@ -77,6 +79,13 @@ class TrelloBoard {
             cardTitle.value = card.title;
             cardDescription.value = card.description || '';
             cardDueDate.value = card.dueDate || '';
+            cardLabels.value = card.labels ? card.labels.join(', ') : '';
+            
+            // Set priority radio button
+            priorityRadios.forEach(radio => {
+                radio.checked = (radio.value === (card.priority || 'none'));
+            });
+            
             this.currentEditingCard = { ...card, column };
         } else {
             // Adding new card
@@ -84,6 +93,13 @@ class TrelloBoard {
             cardTitle.value = '';
             cardDescription.value = '';
             cardDueDate.value = '';
+            cardLabels.value = '';
+            
+            // Reset priority to 'none'
+            priorityRadios.forEach(radio => {
+                radio.checked = (radio.value === 'none');
+            });
+            
             this.currentEditingCard = { column };
         }
 
@@ -103,6 +119,16 @@ class TrelloBoard {
         const title = document.getElementById('card-title').value.trim();
         const description = document.getElementById('card-description').value.trim();
         const dueDate = document.getElementById('card-due-date').value;
+        const labelsInput = document.getElementById('card-labels').value.trim();
+        
+        // Get selected priority
+        const selectedPriority = document.querySelector('input[name="priority"]:checked').value;
+        const priority = selectedPriority !== 'none' ? selectedPriority : null;
+        
+        // Process labels
+        const labels = labelsInput ? 
+            labelsInput.split(',').map(label => label.trim()).filter(label => label) : 
+            [];
 
         if (!title) {
             alert('Please enter a card title');
@@ -121,6 +147,8 @@ class TrelloBoard {
                     description,
                     dueDate: dueDate || null,
                     dueDateCompleted: this.cards[column][cardIndex].dueDateCompleted || false,
+                    priority,
+                    labels,
                     updatedAt: new Date().toISOString()
                 };
             }
@@ -132,6 +160,8 @@ class TrelloBoard {
                 description,
                 dueDate: dueDate || null,
                 dueDateCompleted: false,
+                priority,
+                labels,
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
             };
@@ -180,8 +210,21 @@ class TrelloBoard {
                 <button class="card-action-btn delete-btn" title="Delete">🗑️</button>
             </div>
             <div class="card-title">${this.escapeHtml(card.title)}</div>
-            ${card.description ? `<div class="card-description">${this.escapeHtml(card.description)}</div>` : ''}
         `;
+        
+        // Add description if exists
+        if (card.description) {
+            cardContent += `<div class="card-description">${this.escapeHtml(card.description)}</div>`;
+        }
+        
+        // Add labels if exist
+        if (card.labels && card.labels.length > 0) {
+            cardContent += '<div class="card-labels">';
+            card.labels.forEach(label => {
+                cardContent += `<span class="card-label">${this.escapeHtml(label)}</span>`;
+            });
+            cardContent += '</div>';
+        }
 
         // Add due date if exists
         if (card.dueDate) {
@@ -202,6 +245,11 @@ class TrelloBoard {
                     ${checkboxHtml}
                 </div>
             `;
+        }
+        
+        // Add priority badge if exists
+        if (card.priority) {
+            cardContent += `<div class="card-priority ${card.priority}">${card.priority.charAt(0).toUpperCase() + card.priority.slice(1)}</div>`;
         }
 
         cardDiv.innerHTML = cardContent;

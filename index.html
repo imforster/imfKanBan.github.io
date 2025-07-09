@@ -43,10 +43,39 @@
             <h3 id="modal-title">Add New Card</h3>
             <input type="text" id="card-title" placeholder="Enter card title" maxlength="100">
             <textarea id="card-description" placeholder="Enter card description (optional)" rows="4"></textarea>
+            
+            <div class="priority-container">
+                <label>Priority:</label>
+                <div class="priority-options">
+                    <label class="priority-option">
+                        <input type="radio" name="priority" value="high"> 
+                        <span class="priority-badge high">High</span>
+                    </label>
+                    <label class="priority-option">
+                        <input type="radio" name="priority" value="medium"> 
+                        <span class="priority-badge medium">Medium</span>
+                    </label>
+                    <label class="priority-option">
+                        <input type="radio" name="priority" value="low"> 
+                        <span class="priority-badge low">Low</span>
+                    </label>
+                    <label class="priority-option">
+                        <input type="radio" name="priority" value="none" checked> 
+                        <span class="priority-badge none">None</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="labels-container">
+                <label for="card-labels">Labels (comma separated):</label>
+                <input type="text" id="card-labels" placeholder="Enter labels (e.g. bug, feature, documentation)">
+            </div>
+            
             <div class="due-date-container">
                 <label for="card-due-date">Due Date (optional):</label>
                 <input type="date" id="card-due-date">
             </div>
+            
             <div class="modal-buttons">
                 <button id="save-card">Save</button>
                 <button id="cancel-card">Cancel</button>
