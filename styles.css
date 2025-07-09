@@ -103,6 +103,70 @@ h1 {
     font-size: 0.9rem;
     line-height: 1.4;
     word-wrap: break-word;
+    margin-bottom: 8px;
+}
+
+.card-due-date {
+    display: flex;
+    align-items: center;
+    font-size: 0.85rem;
+    color: #666;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #eee;
+}
+
+.card-due-date.overdue {
+    color: #e74c3c;
+}
+
+.card-due-date.due-soon {
+    color: #f39c12;
+}
+
+.card-due-date.completed {
+    color: #2ecc71;
+    text-decoration: line-through;
+}
+
+.due-date-icon {
+    margin-right: 5px;
+}
+
+.due-date-container {
+    margin-bottom: 16px;
+}
+
+.due-date-container label {
+    display: block;
+    margin-bottom: 6px;
+    color: #333;
+    font-size: 0.9rem;
+}
+
+#card-due-date {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 1rem;
+}
+
+#card-due-date:focus {
+    outline: none;
+    border-color: #0079bf;
+}
+
+.due-date-checkbox {
+    display: flex;
+    align-items: center;
+    margin-left: 10px;
+    cursor: pointer;
+}
+
+.due-date-checkbox input {
+    margin-right: 5px;
 }
 
 .card-actions {

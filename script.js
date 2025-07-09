@@ -69,18 +69,21 @@ class TrelloBoard {
         const modalTitle = document.getElementById('modal-title');
         const cardTitle = document.getElementById('card-title');
         const cardDescription = document.getElementById('card-description');
+        const cardDueDate = document.getElementById('card-due-date');
 
         if (card) {
             // Editing existing card
             modalTitle.textContent = 'Edit Card';
             cardTitle.value = card.title;
             cardDescription.value = card.description || '';
+            cardDueDate.value = card.dueDate || '';
             this.currentEditingCard = { ...card, column };
         } else {
             // Adding new card
             modalTitle.textContent = 'Add New Card';
             cardTitle.value = '';
             cardDescription.value = '';
+            cardDueDate.value = '';
             this.currentEditingCard = { column };
         }
 
@@ -99,6 +102,7 @@ class TrelloBoard {
     saveCard() {
         const title = document.getElementById('card-title').value.trim();
         const description = document.getElementById('card-description').value.trim();
+        const dueDate = document.getElementById('card-due-date').value;
 
         if (!title) {
             alert('Please enter a card title');
@@ -115,6 +119,8 @@ class TrelloBoard {
                     ...this.cards[column][cardIndex],
                     title,
                     description,
+                    dueDate: dueDate || null,
+                    dueDateCompleted: this.cards[column][cardIndex].dueDateCompleted || false,
                     updatedAt: new Date().toISOString()
                 };
             }
@@ -124,6 +130,8 @@ class TrelloBoard {
                 id: this.generateId(),
                 title,
                 description,
+                dueDate: dueDate || null,
+                dueDateCompleted: false,
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
             };
@@ -165,7 +173,8 @@ class TrelloBoard {
         cardDiv.dataset.cardId = card.id;
         cardDiv.dataset.column = column;
 
-        cardDiv.innerHTML = `
+        // Create card content
+        let cardContent = `
             <div class="card-actions">
                 <button class="card-action-btn edit-btn" title="Edit">✏️</button>
                 <button class="card-action-btn delete-btn" title="Delete">🗑️</button>
@@ -174,9 +183,33 @@ class TrelloBoard {
             ${card.description ? `<div class="card-description">${this.escapeHtml(card.description)}</div>` : ''}
         `;
 
+        // Add due date if exists
+        if (card.dueDate) {
+            const dueDateClass = this.getDueDateClass(card.dueDate, card.dueDateCompleted);
+            const formattedDate = this.formatDueDate(card.dueDate);
+            const checkboxHtml = `
+                <div class="due-date-checkbox">
+                    <input type="checkbox" id="due-${card.id}" 
+                        ${card.dueDateCompleted ? 'checked' : ''}>
+                    <label for="due-${card.id}">Complete</label>
+                </div>
+            `;
+            
+            cardContent += `
+                <div class="card-due-date ${dueDateClass}">
+                    <span class="due-date-icon">📅</span>
+                    <span>Due ${formattedDate}</span>
+                    ${checkboxHtml}
+                </div>
+            `;
+        }
+
+        cardDiv.innerHTML = cardContent;
+
         // Add event listeners
         cardDiv.addEventListener('click', (e) => {
-            if (!e.target.classList.contains('card-action-btn')) {
+            if (!e.target.classList.contains('card-action-btn') && 
+                !e.target.type === 'checkbox') {
                 this.openModal(column, card);
             }
         });
@@ -191,6 +224,15 @@ class TrelloBoard {
             this.deleteCard(column, card.id);
         });
 
+        // Add due date checkbox event listener if due date exists
+        if (card.dueDate) {
+            const checkbox = cardDiv.querySelector(`#due-${card.id}`);
+            checkbox.addEventListener('change', (e) => {
+                e.stopPropagation();
+                this.toggleDueDateCompleted(column, card.id, e.target.checked);
+            });
+        }
+
         // Drag and drop event listeners
         cardDiv.addEventListener('dragstart', (e) => {
             this.draggedCard = { id: card.id, column };
@@ -204,6 +246,64 @@ class TrelloBoard {
         });
 
         return cardDiv;
+    }
+
+    // Format due date for display
+    formatDueDate(dateString) {
+        const date = new Date(dateString);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        
+        // Check if date is today, tomorrow, or yesterday
+        if (date.toDateString() === today.toDateString()) {
+            return 'today';
+        } else if (date.toDateString() === tomorrow.toDateString()) {
+            return 'tomorrow';
+        } else if (date.toDateString() === yesterday.toDateString()) {
+            return 'yesterday';
+        } else {
+            // Format as Month Day (e.g., Jul 15)
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+    }
+
+    // Get due date class based on date and completion status
+    getDueDateClass(dateString, completed) {
+        if (completed) {
+            return 'completed';
+        }
+        
+        const dueDate = new Date(dateString);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const threeDaysFromNow = new Date(today);
+        threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
+        
+        if (dueDate < today) {
+            return 'overdue';
+        } else if (dueDate <= threeDaysFromNow) {
+            return 'due-soon';
+        }
+        
+        return '';
+    }
+
+    // Toggle due date completed status
+    toggleDueDateCompleted(column, cardId, completed) {
+        const cardIndex = this.cards[column].findIndex(card => card.id === cardId);
+        if (cardIndex !== -1) {
+            this.cards[column][cardIndex].dueDateCompleted = completed;
+            this.cards[column][cardIndex].updatedAt = new Date().toISOString();
+            this.saveCards();
+            this.renderCards(column);
+        }
     }
 
     // Render cards for a specific column
