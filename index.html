@@ -9,29 +9,68 @@
 <body>
     <div class="container">
         <h1>My Trello Board</h1>
-        <div class="board">
-            <div class="column" data-column="todo">
-                <div class="column-header">
-                    <h2>To Do</h2>
-                    <button class="add-card-btn" data-column="todo">+ Add Card</button>
+        
+        <div class="board-container">
+            <div class="search-filter-container">
+                <div class="search-container">
+                    <input type="text" id="search-input" placeholder="Search cards...">
+                    <button id="search-button">🔍</button>
                 </div>
-                <div class="cards-container" id="todo-cards"></div>
+                <div class="filter-container">
+                    <button id="filter-toggle">Filters ▾</button>
+                    <div id="filter-dropdown" class="filter-dropdown">
+                        <div class="filter-section">
+                            <h4>Priority</h4>
+                            <label><input type="checkbox" class="filter-priority" value="high"> High</label>
+                            <label><input type="checkbox" class="filter-priority" value="medium"> Medium</label>
+                            <label><input type="checkbox" class="filter-priority" value="low"> Low</label>
+                            <label><input type="checkbox" class="filter-priority" value="none"> None</label>
+                        </div>
+                        <div class="filter-section">
+                            <h4>Due Date</h4>
+                            <label><input type="checkbox" class="filter-due" value="overdue"> Overdue</label>
+                            <label><input type="checkbox" class="filter-due" value="due-soon"> Due Soon</label>
+                            <label><input type="checkbox" class="filter-due" value="completed"> Completed</label>
+                            <label><input type="checkbox" class="filter-due" value="no-date"> No Date</label>
+                        </div>
+                        <div class="filter-section">
+                            <h4>Labels</h4>
+                            <div id="label-filters">
+                                <!-- Will be populated dynamically -->
+                            </div>
+                        </div>
+                        <div class="filter-actions">
+                            <button id="apply-filters">Apply</button>
+                            <button id="clear-filters">Clear All</button>
+                        </div>
+                    </div>
+                </div>
             </div>
             
-            <div class="column" data-column="doing">
-                <div class="column-header">
-                    <h2>Doing</h2>
-                    <button class="add-card-btn" data-column="doing">+ Add Card</button>
+            <div class="board">
+                <div class="column" data-column="todo">
+                    <div class="column-header">
+                        <h2>To Do</h2>
+                        <button class="add-card-btn" data-column="todo">+ Add Card</button>
+                    </div>
+                    <div class="cards-container" id="todo-cards"></div>
                 </div>
-                <div class="cards-container" id="doing-cards"></div>
-            </div>
-            
-            <div class="column" data-column="done">
-                <div class="column-header">
-                    <h2>Done</h2>
-                    <button class="add-card-btn" data-column="done">+ Add Card</button>
+                
+                <div class="column" data-column="doing">
+                    <div class="column-header">
+                        <h2>Doing</h2>
+                        <button class="add-card-btn" data-column="doing">+ Add Card</button>
+                    </div>
+                    <div class="cards-container" id="doing-cards"></div>
                 </div>
-                <div class="cards-container" id="done-cards"></div>
+                
+                <div class="column" data-column="done">
+                    <div class="column-header">
+                        <h2>Done</h2>
+                        <button class="add-card-btn" data-column="done">+ Add Card</button>
+                    </div>
+                    <div class="cards-container" id="done-cards"></div>
+                </div>
             </div>
         </div>
     </div>

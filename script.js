@@ -61,6 +61,250 @@ class TrelloBoard {
                 this.saveCard();
             }
         });
+        
+        // Search and filter event listeners
+        const searchInput = document.getElementById('search-input');
+        const searchButton = document.getElementById('search-button');
+        const filterToggle = document.getElementById('filter-toggle');
+        const filterDropdown = document.getElementById('filter-dropdown');
+        const applyFiltersBtn = document.getElementById('apply-filters');
+        const clearFiltersBtn = document.getElementById('clear-filters');
+        
+        // Search functionality
+        searchButton.addEventListener('click', () => {
+            this.searchCards(searchInput.value.trim());
+        });
+        
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.searchCards(searchInput.value.trim());
+            }
+        });
+        
+        // Filter dropdown toggle
+        filterToggle.addEventListener('click', () => {
+            filterDropdown.classList.toggle('show');
+            this.populateLabelFilters();
+        });
+        
+        // Close filter dropdown when clicking outside
+        window.addEventListener('click', (e) => {
+            if (!e.target.closest('.filter-container') && filterDropdown.classList.contains('show')) {
+                filterDropdown.classList.remove('show');
+            }
+        });
+        
+        // Apply filters
+        applyFiltersBtn.addEventListener('click', () => {
+            this.applyFilters();
+            filterDropdown.classList.remove('show');
+        });
+        
+        // Clear filters
+        clearFiltersBtn.addEventListener('click', () => {
+            this.clearFilters();
+            filterDropdown.classList.remove('show');
+        });
+    }
+    
+    // Search cards by title, description, or labels
+    searchCards(query) {
+        if (!query) {
+            this.renderAllCards();
+            return;
+        }
+        
+        query = query.toLowerCase();
+        
+        // Clear existing highlights
+        document.querySelectorAll('.card.highlight').forEach(card => {
+            card.classList.remove('highlight');
+        });
+        
+        // Remove any existing "no results" messages
+        document.querySelectorAll('.no-results').forEach(msg => msg.remove());
+        
+        let foundResults = false;
+        
+        // Search in each column
+        ['todo', 'doing', 'done'].forEach(column => {
+            const container = document.getElementById(`${column}-cards`);
+            let columnHasResults = false;
+            
+            // Show all cards first
+            container.querySelectorAll('.card').forEach(cardElement => {
+                cardElement.style.display = 'block';
+                
+                const cardId = cardElement.dataset.cardId;
+                const card = this.cards[column].find(c => c.id === cardId);
+                
+                if (card) {
+                    // Check if card matches search query
+                    const titleMatch = card.title.toLowerCase().includes(query);
+                    const descMatch = card.description && card.description.toLowerCase().includes(query);
+                    const labelMatch = card.labels && card.labels.some(label => 
+                        label.toLowerCase().includes(query)
+                    );
+                    
+                    if (titleMatch || descMatch || labelMatch) {
+                        cardElement.classList.add('highlight');
+                        columnHasResults = true;
+                        foundResults = true;
+                    } else {
+                        cardElement.style.display = 'none';
+                    }
+                }
+            });
+            
+            // Show "no results" message if column has no matching cards
+            if (!columnHasResults) {
+                const noResults = document.createElement('div');
+                noResults.className = 'no-results';
+                noResults.textContent = 'No matching cards';
+                container.appendChild(noResults);
+            }
+        });
+        
+        if (!foundResults) {
+            alert('No cards match your search query.');
+        }
+    }
+    
+    // Populate label filters based on existing labels
+    populateLabelFilters() {
+        const labelFiltersContainer = document.getElementById('label-filters');
+        labelFiltersContainer.innerHTML = '';
+        
+        // Collect all unique labels
+        const allLabels = new Set();
+        
+        ['todo', 'doing', 'done'].forEach(column => {
+            this.cards[column].forEach(card => {
+                if (card.labels && card.labels.length) {
+                    card.labels.forEach(label => allLabels.add(label));
+                }
+            });
+        });
+        
+        // If no labels exist, show a message
+        if (allLabels.size === 0) {
+            const noLabels = document.createElement('div');
+            noLabels.textContent = 'No labels found';
+            noLabels.style.fontStyle = 'italic';
+            noLabels.style.color = '#666';
+            labelFiltersContainer.appendChild(noLabels);
+            return;
+        }
+        
+        // Create checkbox for each label
+        allLabels.forEach(label => {
+            const labelContainer = document.createElement('label');
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'filter-label';
+            checkbox.value = label;
+            
+            labelContainer.appendChild(checkbox);
+            labelContainer.appendChild(document.createTextNode(` ${label}`));
+            
+            labelFiltersContainer.appendChild(labelContainer);
+        });
+    }
+    
+    // Apply selected filters
+    applyFilters() {
+        // Get selected priorities
+        const selectedPriorities = Array.from(
+            document.querySelectorAll('.filter-priority:checked')
+        ).map(checkbox => checkbox.value);
+        
+        // Get selected due date filters
+        const selectedDueFilters = Array.from(
+            document.querySelectorAll('.filter-due:checked')
+        ).map(checkbox => checkbox.value);
+        
+        // Get selected labels
+        const selectedLabels = Array.from(
+            document.querySelectorAll('.filter-label:checked')
+        ).map(checkbox => checkbox.value);
+        
+        // If no filters selected, show all cards
+        if (selectedPriorities.length === 0 && 
+            selectedDueFilters.length === 0 && 
+            selectedLabels.length === 0) {
+            this.renderAllCards();
+            return;
+        }
+        
+        // Remove any existing "no results" messages
+        document.querySelectorAll('.no-results').forEach(msg => msg.remove());
+        
+        // Apply filters to each column
+        ['todo', 'doing', 'done'].forEach(column => {
+            const container = document.getElementById(`${column}-cards`);
+            let columnHasResults = false;
+            
+            container.querySelectorAll('.card').forEach(cardElement => {
+                const cardId = cardElement.dataset.cardId;
+                const card = this.cards[column].find(c => c.id === cardId);
+                
+                if (card) {
+                    // Check priority filter
+                    const priorityMatch = selectedPriorities.length === 0 || 
+                        selectedPriorities.includes(card.priority || 'none');
+                    
+                    // Check due date filter
+                    let dueMatch = true;
+                    if (selectedDueFilters.length > 0) {
+                        if (!card.dueDate && !selectedDueFilters.includes('no-date')) {
+                            dueMatch = false;
+                        } else if (card.dueDate) {
+                            const dueDateClass = this.getDueDateClass(card.dueDate, card.dueDateCompleted);
+                            dueMatch = selectedDueFilters.includes(dueDateClass);
+                        }
+                    }
+                    
+                    // Check label filter
+                    let labelMatch = true;
+                    if (selectedLabels.length > 0) {
+                        labelMatch = card.labels && selectedLabels.some(label => 
+                            card.labels.includes(label)
+                        );
+                    }
+                    
+                    // Show or hide card based on filter matches
+                    if (priorityMatch && dueMatch && labelMatch) {
+                        cardElement.style.display = 'block';
+                        columnHasResults = true;
+                    } else {
+                        cardElement.style.display = 'none';
+                    }
+                }
+            });
+            
+            // Show "no results" message if column has no matching cards
+            if (!columnHasResults) {
+                const noResults = document.createElement('div');
+                noResults.className = 'no-results';
+                noResults.textContent = 'No matching cards';
+                container.appendChild(noResults);
+            }
+        });
+    }
+    
+    // Clear all filters and search
+    clearFilters() {
+        // Uncheck all filter checkboxes
+        document.querySelectorAll('.filter-priority, .filter-due, .filter-label').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        
+        // Clear search input
+        document.getElementById('search-input').value = '';
+        
+        // Show all cards
+        this.renderAllCards();
     }
 
     // Open modal for adding/editing cards
@@ -359,6 +603,12 @@ class TrelloBoard {
         const container = document.getElementById(`${column}-cards`);
         container.innerHTML = '';
 
+        // Remove any "no results" messages
+        const noResults = container.querySelector('.no-results');
+        if (noResults) {
+            noResults.remove();
+        }
+
         this.cards[column].forEach(card => {
             const cardElement = this.createCardElement(card, column);
             container.appendChild(cardElement);
@@ -366,6 +616,14 @@ class TrelloBoard {
 
         // Add drag and drop listeners to the container
         this.addDragDropListeners(container, column);
+        
+        // If column is empty, show a message
+        if (this.cards[column].length === 0) {
+            const emptyMessage = document.createElement('div');
+            emptyMessage.className = 'no-results';
+            emptyMessage.textContent = 'No cards in this column';
+            container.appendChild(emptyMessage);
+        }
     }
 
     // Render all cards

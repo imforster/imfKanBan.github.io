@@ -16,6 +16,11 @@ body {
     margin: 0 auto;
 }
 
+.board-container {
+    width: 100%;
+    max-width: 1200px; /* Ensure consistent max width */
+}
+
 h1 {
     text-align: center;
     color: white;
@@ -26,18 +31,17 @@ h1 {
 
 .board {
     display: flex;
-    gap: 20px;
-    justify-content: center;
+    gap: 10px; /* Reduced from 20px to 10px */
+    justify-content: space-between; /* Distribute space evenly */
     flex-wrap: wrap;
+    padding: 0 16px; /* Match padding with search container */
 }
 
 .column {
     background: #f4f5f7;
     border-radius: 8px;
     padding: 16px;
-    min-width: 300px;
-    max-width: 350px;
-    flex: 1;
+    width: 350px; /* Increased width for wider columns */
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
@@ -459,4 +463,175 @@ h1 {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+/* Search and Filter Styles */
+.search-filter-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 10px; /* Match the gap between columns */
+    max-width: 1200px; /* Match the max-width of the board container */
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 0 16px; /* Match the padding of the board columns */
+}
+
+.search-container {
+    display: flex;
+    flex: 1;
+    max-width: 350px; /* Match new column width */
+    position: relative;
+    margin-right: auto; /* Push filter to the right */
+}
+
+#search-input {
+    flex: 1;
+    padding: 10px 15px;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+    transition: border-color 0.2s;
+}
+
+#search-input:focus {
+    outline: none;
+    border-color: #0079bf;
+}
+
+#search-button {
+    background: #0079bf;
+    color: white;
+    border: none;
+    border-radius: 0 4px 4px 0;
+    padding: 0 15px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+}
+
+#search-button:hover {
+    background: #005a8b;
+}
+
+.filter-container {
+    position: relative;
+    margin-left: auto; /* Push to the right edge */
+    width: 350px; /* Match new column width */
+    display: flex;
+    justify-content: flex-end;
+}
+
+#filter-toggle {
+    background: #f4f5f7;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    padding: 10px 15px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: #333;
+    transition: background 0.2s;
+    width: auto;
+}
+
+#filter-toggle:hover {
+    background: #e4e6ea;
+}
+
+.filter-dropdown {
+    position: absolute;
+    right: 0;
+    top: 100%;
+    margin-top: 5px;
+    background: white;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    width: 350px; /* Match new column width */
+    z-index: 100;
+    padding: 15px;
+    display: none;
+}
+
+.filter-dropdown.show {
+    display: block;
+}
+
+.filter-section {
+    margin-bottom: 15px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.filter-section:last-child {
+    border-bottom: none;
+}
+
+.filter-section h4 {
+    margin: 0 0 8px 0;
+    font-size: 0.9rem;
+    color: #333;
+}
+
+.filter-section label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 0.85rem;
+    color: #555;
+    cursor: pointer;
+}
+
+.filter-section input[type="checkbox"] {
+    margin-right: 5px;
+}
+
+.filter-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+}
+
+.filter-actions button {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background 0.2s;
+}
+
+#apply-filters {
+    background: #0079bf;
+    color: white;
+}
+
+#apply-filters:hover {
+    background: #005a8b;
+}
+
+#clear-filters {
+    background: #f4f5f7;
+    color: #333;
+}
+
+#clear-filters:hover {
+    background: #e4e6ea;
+}
+
+/* Highlight for filtered cards */
+.card.highlight {
+    box-shadow: 0 0 0 2px #0079bf;
+    transform: translateY(-2px);
+}
+
+/* No results message */
+.no-results {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+    font-style: italic;
 }

@@ -250,7 +250,7 @@ This ensures consistent development practices and informed decision-making for f
 
 - ~~Add due dates to cards~~
 - ~~Implement card priorities/labels~~
-- Add search and filter functionality
+- ~~Add search and filter functionality~~
 - Support for multiple boards
 - User authentication and cloud sync
 - Card attachments and comments
