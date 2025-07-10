@@ -409,12 +409,14 @@ body {
 .card-due-date {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   font-size: 0.85rem;
   color: #666;
   margin-top: 8px;
   padding-top: 8px;
   border-top: 1px solid #eee;
-  padding-right: 70px; /* Add padding to prevent overlap with priority badge */
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .card-due-date.overdue {
@@ -425,13 +427,47 @@ body {
   color: #f39c12;
 }
 
+.card-due-date.due-today {
+  color: #e67e22;
+  font-weight: 600;
+}
+
 .card-due-date.completed {
   color: #2ecc71;
+}
+
+.card-due-date.completed .due-date-text {
   text-decoration: line-through;
 }
 
 .due-date-icon {
   margin-right: 5px;
+  font-size: 1rem;
+}
+
+.due-date-text {
+  flex: 1;
+  min-width: 0; /* Allow text to shrink */
+}
+
+.due-date-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.due-date-checkbox input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+}
+
+.due-date-checkbox label {
+  cursor: pointer;
+  margin: 0;
+  color: inherit;
 }
 
 .due-date-badge {
