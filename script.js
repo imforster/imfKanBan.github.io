@@ -112,7 +112,8 @@ class BoardManager {
         
         // Reinitialize TrelloBoard with new board data
         if (this.trelloBoard) {
-            this.trelloBoard.switchBoard(this.getCurrentBoard().cards);
+            const currentBoard = this.getCurrentBoard();
+            this.trelloBoard.switchBoard(currentBoard.cards);
         }
         
         // Update global reference for backward compatibility
@@ -381,12 +382,26 @@ class TrelloBoard {
         
         this.initializeEventListeners();
         this.renderAllCards();
+        this.updateLabelFilters(); // Initialize label filters on startup
     }
 
     // Switch to different board data
     switchBoard(newCards) {
         this.cards = newCards;
+        // Clear any existing search/filter state when switching boards
+        this.currentSearchTerm = '';
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) {
+            searchInput.value = '';
+        }
+        
+        // Clear any active filters
+        document.querySelectorAll('.filter-priority:checked, .filter-due:checked, .filter-label:checked').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        
         this.renderAllCards();
+        this.updateLabelFilters(); // Update label filters when switching boards
         // Reinitialize event listeners to ensure they work with the new board context
         this.initializeCardEventListeners();
     }
@@ -505,10 +520,12 @@ class TrelloBoard {
                 filterDropdown.style.display = filterDropdown.style.display === 'block' ? 'none' : 'block';
             });
 
-            // Filter checkboxes
+            // Filter checkboxes - only attach to existing ones initially
             document.querySelectorAll('.filter-priority, .filter-due').forEach(checkbox => {
                 checkbox.addEventListener('change', () => this.applyFilters());
             });
+            
+            // Label filter checkboxes will be handled in updateLabelFilters()
 
             // Close filter dropdown when clicking outside
             document.addEventListener('click', (e) => {
@@ -516,6 +533,19 @@ class TrelloBoard {
                     filterDropdown.style.display = 'none';
                 }
             });
+
+            // Clear all filters button
+            const clearFiltersBtn = document.getElementById('clear-filters');
+            if (clearFiltersBtn) {
+                clearFiltersBtn.addEventListener('click', () => {
+                    // Clear all filter checkboxes
+                    document.querySelectorAll('.filter-priority:checked, .filter-due:checked, .filter-label:checked').forEach(checkbox => {
+                        checkbox.checked = false;
+                    });
+                    // Apply filters (which will show all cards)
+                    this.applyFilters();
+                });
+            }
         }
     }
 
@@ -525,6 +555,7 @@ class TrelloBoard {
         const titleInput = document.getElementById('card-title');
         const descInput = document.getElementById('card-description');
         const dueDateInput = document.getElementById('card-due-date');
+        const labelsInput = document.getElementById('card-labels');
         const modalTitle = modal.querySelector('h3'); // Changed from h2 to h3
 
         if (card) {
@@ -539,6 +570,11 @@ class TrelloBoard {
                 priorityRadio.checked = true;
             }
             
+            // Set labels
+            if (labelsInput) {
+                labelsInput.value = card.labels ? card.labels.join(', ') : '';
+            }
+            
             if (dueDateInput) dueDateInput.value = card.dueDate || '';
             this.currentEditingCard = { column, card };
         } else {
@@ -551,6 +587,11 @@ class TrelloBoard {
             const defaultPriorityRadio = document.querySelector(`input[name="priority"][value="none"]`);
             if (defaultPriorityRadio) {
                 defaultPriorityRadio.checked = true;
+            }
+            
+            // Clear labels
+            if (labelsInput) {
+                labelsInput.value = '';
             }
             
             if (dueDateInput) dueDateInput.value = '';
@@ -572,10 +613,15 @@ class TrelloBoard {
         const titleInput = document.getElementById('card-title');
         const descInput = document.getElementById('card-description');
         const dueDateInput = document.getElementById('card-due-date');
+        const labelsInput = document.getElementById('card-labels');
 
         const title = titleInput.value.trim();
         const description = descInput.value.trim();
         const dueDate = dueDateInput ? dueDateInput.value : '';
+        
+        // Process labels - split by comma and clean up
+        const labelsText = labelsInput ? labelsInput.value.trim() : '';
+        const labels = labelsText ? labelsText.split(',').map(label => label.trim()).filter(label => label.length > 0) : [];
         
         // Get priority from radio buttons
         const priorityRadio = document.querySelector('input[name="priority"]:checked');
@@ -594,6 +640,7 @@ class TrelloBoard {
             card.description = description;
             card.priority = priority;
             card.dueDate = dueDate;
+            card.labels = labels;
             card.updatedAt = new Date().toISOString();
         } else {
             // Add new card
@@ -603,6 +650,7 @@ class TrelloBoard {
                 description: description,
                 priority: priority,
                 dueDate: dueDate,
+                labels: labels,
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
             };
@@ -611,6 +659,7 @@ class TrelloBoard {
 
         this.saveCards();
         this.renderCards(column);
+        this.updateLabelFilters(); // Only update when cards are actually saved
         this.closeModal();
     }
 
@@ -663,7 +712,7 @@ class TrelloBoard {
         // Due date status and completion logic
         let dueDateClass = '';
         let dueDateText = '';
-        let dueDateIcon = '📅';
+        let dueDateIcon = '&#128197;'; // 📅 calendar
         let isCompleted = card.completed || false;
         
         if (card.dueDate) {
@@ -675,28 +724,33 @@ class TrelloBoard {
             if (isCompleted) {
                 dueDateClass = 'completed';
                 dueDateText = `Completed: ${card.completedDate ? new Date(card.completedDate).toLocaleDateString() : 'Done'}`;
-                dueDateIcon = '✅';
+                dueDateIcon = '&#9989;'; // ✅ check mark
             } else if (diffDays < 0) {
                 dueDateClass = 'overdue';
                 dueDateText = `Overdue by ${Math.abs(diffDays)} day(s)`;
-                dueDateIcon = '⚠️';
+                dueDateIcon = '&#9888;'; // ⚠️ warning
             } else if (diffDays === 0) {
                 dueDateClass = 'due-today';
                 dueDateText = 'Due today';
-                dueDateIcon = '🔥';
+                dueDateIcon = '&#128293;'; // 🔥 fire
             } else if (diffDays <= 3) {
                 dueDateClass = 'due-soon';
                 dueDateText = `Due in ${diffDays} day(s)`;
-                dueDateIcon = '⏰';
+                dueDateIcon = '&#9200;'; // ⏰ alarm clock
             } else {
                 dueDateText = `Due ${dueDate.toLocaleDateString()}`;
-                dueDateIcon = '📅';
+                dueDateIcon = '&#128197;'; // 📅 calendar
             }
             cardDiv.classList.add(dueDateClass);
         }
 
         const priorityBadge = card.priority && card.priority !== 'none' 
             ? `<span class="priority-badge priority-${card.priority}">${card.priority.toUpperCase()}</span>` 
+            : '';
+
+        // Create labels display
+        const labelsBadges = card.labels && card.labels.length > 0
+            ? card.labels.map(label => `<span class="label-badge" data-label="${this.escapeHtml(label)}">${this.escapeHtml(label)}</span>`).join('')
             : '';
 
         const dueDateSection = card.dueDate 
@@ -719,13 +773,14 @@ class TrelloBoard {
             <div class="card-header">
                 <h3>${this.escapeHtml(card.title)}</h3>
                 <div class="card-actions">
-                    <button class="edit-btn" data-action="edit" data-card-id="${card.id}" data-column="${column}" title="Edit card">✏️</button>
-                    <button class="delete-btn" data-action="delete" data-card-id="${card.id}" data-column="${column}" title="Delete card">🗑️</button>
+                    <button class="edit-btn" data-action="edit" data-card-id="${card.id}" data-column="${column}" title="Edit card">&#9998;</button>
+                    <button class="delete-btn" data-action="delete" data-card-id="${card.id}" data-column="${column}" title="Delete card">&#128465;</button>
                 </div>
             </div>
             ${card.description ? `<p class="card-description">${this.escapeHtml(card.description)}</p>` : ''}
             <div class="card-badges">
                 ${priorityBadge}
+                ${labelsBadges}
             </div>
             ${dueDateSection}
             <div class="card-meta">
@@ -759,12 +814,15 @@ class TrelloBoard {
     // Render cards in a specific column
     renderCards(column) {
         const container = document.querySelector(`[data-column="${column}"] .cards-container`);
-        if (!container) return;
+        if (!container) {
+            console.error(`Container not found for column: ${column}`);
+            return;
+        }
 
         container.innerHTML = '';
 
         // Apply current filters
-        const filteredCards = this.getFilteredCards(this.cards[column]);
+        const filteredCards = this.getFilteredCards(this.cards[column] || []);
 
         filteredCards.forEach(card => {
             const cardElement = this.createCardElement(card, column);
@@ -780,6 +838,8 @@ class TrelloBoard {
         ['todo', 'doing', 'done'].forEach(column => {
             this.renderCards(column);
         });
+        // Don't update label filters here - it resets checkbox states
+        // this.updateLabelFilters(); 
     }
 
     // Add drag and drop listeners to container
@@ -819,6 +879,11 @@ class TrelloBoard {
 
     // Get filtered cards based on search and filters
     getFilteredCards(cards) {
+        if (!cards || !Array.isArray(cards)) {
+            console.warn('getFilteredCards received invalid cards array:', cards);
+            return [];
+        }
+        
         let filtered = [...cards];
 
         // Apply search filter
@@ -857,7 +922,81 @@ class TrelloBoard {
             });
         }
 
+        // Apply label filters
+        const labelFilters = Array.from(document.querySelectorAll('.filter-label:checked')).map(cb => cb.value);
+        if (labelFilters.length > 0) {
+            filtered = filtered.filter(card => {
+                if (!card.labels || card.labels.length === 0) {
+                    return labelFilters.includes('no-labels');
+                }
+                return card.labels.some(label => labelFilters.includes(label));
+            });
+        }
+
         return filtered;
+    }
+
+    // Update label filter dropdown with available labels
+    updateLabelFilters() {
+        const labelFiltersContainer = document.getElementById('label-filters');
+        if (!labelFiltersContainer) return;
+
+        // Collect all unique labels from all cards
+        const allLabels = new Set();
+        Object.values(this.cards).forEach(columnCards => {
+            columnCards.forEach(card => {
+                if (card.labels && Array.isArray(card.labels)) {
+                    card.labels.forEach(label => allLabels.add(label));
+                }
+            });
+        });
+
+        // Clear existing label filters
+        labelFiltersContainer.innerHTML = '';
+
+        // Add predefined labels (feature, bug, documentation) first
+        const predefinedLabels = ['feature', 'bug', 'documentation'];
+        predefinedLabels.forEach(label => {
+            allLabels.add(label);
+        });
+
+        // Sort labels alphabetically
+        const sortedLabels = Array.from(allLabels).sort();
+
+        // Create checkboxes for each label
+        sortedLabels.forEach(label => {
+            const labelElement = document.createElement('label');
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'filter-label';
+            checkbox.value = label; // Don't escape the value, just the display text
+            
+            // Add event listener immediately with debug
+            checkbox.addEventListener('change', (e) => {
+                this.applyFilters();
+            });
+            
+            labelElement.appendChild(checkbox);
+            labelElement.appendChild(document.createTextNode(' ' + this.escapeHtml(label)));
+            labelFiltersContainer.appendChild(labelElement);
+        });
+
+        // Add "No Labels" option
+        const noLabelsElement = document.createElement('label');
+        const noLabelsCheckbox = document.createElement('input');
+        noLabelsCheckbox.type = 'checkbox';
+        noLabelsCheckbox.className = 'filter-label';
+        noLabelsCheckbox.value = 'no-labels';
+        
+        // Add event listener immediately with debug
+        noLabelsCheckbox.addEventListener('change', (e) => {
+            console.log('No Labels filter changed:', 'checked:', e.target.checked);
+            this.applyFilters();
+        });
+        
+        noLabelsElement.appendChild(noLabelsCheckbox);
+        noLabelsElement.appendChild(document.createTextNode(' No Labels'));
+        labelFiltersContainer.appendChild(noLabelsElement);
     }
 
     // Escape HTML to prevent XSS
