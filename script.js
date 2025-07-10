@@ -114,6 +114,11 @@ class BoardManager {
         if (this.trelloBoard) {
             this.trelloBoard.switchBoard(this.getCurrentBoard().cards);
         }
+        
+        // Update global reference for backward compatibility
+        if (typeof window !== 'undefined') {
+            window.trelloBoard = this.trelloBoard;
+        }
     }
 
     // Update board title
@@ -382,6 +387,8 @@ class TrelloBoard {
     switchBoard(newCards) {
         this.cards = newCards;
         this.renderAllCards();
+        // Reinitialize event listeners to ensure they work with the new board context
+        this.initializeCardEventListeners();
     }
 
     // Save cards to current board
@@ -397,13 +404,57 @@ class TrelloBoard {
 
     // Initialize all event listeners
     initializeEventListeners() {
-        // Add card buttons
-        document.querySelectorAll('.add-card-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+        this.initializeCardEventListeners();
+        this.initializeGeneralEventListeners();
+    }
+
+    // Initialize card-specific event listeners (need to be reinitialized on board switch)
+    initializeCardEventListeners() {
+        // Use event delegation for add card buttons to avoid cloning issues
+        // Remove existing delegated listener first
+        if (this.addCardHandler) {
+            document.removeEventListener('click', this.addCardHandler);
+        }
+        
+        // Create bound handler for add card buttons
+        this.addCardHandler = (e) => {
+            if (e.target.matches('.add-card-btn')) {
                 const column = e.target.dataset.column;
                 this.openModal(column);
-            });
-        });
+            }
+        };
+        
+        // Add the delegated event listener for add card buttons
+        document.addEventListener('click', this.addCardHandler);
+
+        // Add event delegation for card action buttons (edit/delete)
+        // Remove existing delegated listeners first
+        if (this.cardActionHandler) {
+            document.removeEventListener('click', this.cardActionHandler);
+        }
+        
+        // Create bound handler to maintain 'this' context
+        this.cardActionHandler = (e) => {
+            if (e.target.matches('.edit-btn')) {
+                const cardId = e.target.dataset.cardId;
+                const column = e.target.dataset.column;
+                const card = this.cards[column].find(c => c.id === cardId);
+                if (card) {
+                    this.openModal(column, card);
+                }
+            } else if (e.target.matches('.delete-btn')) {
+                const cardId = e.target.dataset.cardId;
+                const column = e.target.dataset.column;
+                this.deleteCard(column, cardId);
+            }
+        };
+        
+        // Add the delegated event listener
+        document.addEventListener('click', this.cardActionHandler);
+    }
+
+    // Initialize general event listeners (only need to be set up once)
+    initializeGeneralEventListeners() {
 
         // Modal event listeners
         const modal = document.getElementById('card-modal');
@@ -455,7 +506,7 @@ class TrelloBoard {
             });
 
             // Filter checkboxes
-            document.querySelectorAll('.filter-priority, .filter-due-date').forEach(checkbox => {
+            document.querySelectorAll('.filter-priority, .filter-due').forEach(checkbox => {
                 checkbox.addEventListener('change', () => this.applyFilters());
             });
 
@@ -473,16 +524,21 @@ class TrelloBoard {
         const modal = document.getElementById('card-modal');
         const titleInput = document.getElementById('card-title');
         const descInput = document.getElementById('card-description');
-        const prioritySelect = document.getElementById('card-priority');
         const dueDateInput = document.getElementById('card-due-date');
-        const modalTitle = modal.querySelector('h2');
+        const modalTitle = modal.querySelector('h3'); // Changed from h2 to h3
 
         if (card) {
             // Editing existing card
             modalTitle.textContent = 'Edit Card';
             titleInput.value = card.title;
             descInput.value = card.description || '';
-            if (prioritySelect) prioritySelect.value = card.priority || 'none';
+            
+            // Set priority radio button
+            const priorityRadio = document.querySelector(`input[name="priority"][value="${card.priority || 'none'}"]`);
+            if (priorityRadio) {
+                priorityRadio.checked = true;
+            }
+            
             if (dueDateInput) dueDateInput.value = card.dueDate || '';
             this.currentEditingCard = { column, card };
         } else {
@@ -490,7 +546,13 @@ class TrelloBoard {
             modalTitle.textContent = 'Add New Card';
             titleInput.value = '';
             descInput.value = '';
-            if (prioritySelect) prioritySelect.value = 'none';
+            
+            // Set default priority to 'none'
+            const defaultPriorityRadio = document.querySelector(`input[name="priority"][value="none"]`);
+            if (defaultPriorityRadio) {
+                defaultPriorityRadio.checked = true;
+            }
+            
             if (dueDateInput) dueDateInput.value = '';
             this.currentEditingCard = { column, card: null };
         }
@@ -509,13 +571,15 @@ class TrelloBoard {
     saveCard() {
         const titleInput = document.getElementById('card-title');
         const descInput = document.getElementById('card-description');
-        const prioritySelect = document.getElementById('card-priority');
         const dueDateInput = document.getElementById('card-due-date');
 
         const title = titleInput.value.trim();
         const description = descInput.value.trim();
-        const priority = prioritySelect ? prioritySelect.value : 'none';
         const dueDate = dueDateInput ? dueDateInput.value : '';
+        
+        // Get priority from radio buttons
+        const priorityRadio = document.querySelector('input[name="priority"]:checked');
+        const priority = priorityRadio ? priorityRadio.value : 'none';
 
         if (!title) {
             alert('Please enter a card title');
@@ -619,8 +683,8 @@ class TrelloBoard {
             <div class="card-header">
                 <h3>${this.escapeHtml(card.title)}</h3>
                 <div class="card-actions">
-                    <button class="edit-btn" onclick="trelloBoard.openModal('${column}', trelloBoard.cards.${column}.find(c => c.id === '${card.id}'))" title="Edit card">✏️</button>
-                    <button class="delete-btn" onclick="trelloBoard.deleteCard('${column}', '${card.id}')" title="Delete card">🗑️</button>
+                    <button class="edit-btn" data-action="edit" data-card-id="${card.id}" data-column="${column}" title="Edit card">✏️</button>
+                    <button class="delete-btn" data-action="delete" data-card-id="${card.id}" data-column="${column}" title="Delete card">🗑️</button>
                 </div>
             </div>
             ${card.description ? `<p class="card-description">${this.escapeHtml(card.description)}</p>` : ''}
@@ -727,7 +791,7 @@ class TrelloBoard {
         }
 
         // Apply due date filters
-        const dueDateFilters = Array.from(document.querySelectorAll('.filter-due-date:checked')).map(cb => cb.value);
+        const dueDateFilters = Array.from(document.querySelectorAll('.filter-due:checked')).map(cb => cb.value);
         if (dueDateFilters.length > 0) {
             filtered = filtered.filter(card => {
                 if (!card.dueDate && dueDateFilters.includes('no-date')) return true;
@@ -774,4 +838,10 @@ let trelloBoard;
 document.addEventListener('DOMContentLoaded', () => {
     boardManager = new BoardManager();
     trelloBoard = boardManager.trelloBoard; // For backward compatibility with existing onclick handlers
+    
+    // Ensure global reference is available
+    if (typeof window !== 'undefined') {
+        window.trelloBoard = trelloBoard;
+        window.boardManager = boardManager;
+    }
 });
