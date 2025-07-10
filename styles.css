@@ -21,6 +21,7 @@ body {
     max-width: 1200px; /* Ensure consistent max width */
 }
 
+/* Legacy h1 style for backward compatibility */
 h1 {
     text-align: center;
     color: white;
@@ -40,6 +41,15 @@ h1 {
     border-radius: 12px;
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    /* Ensure visibility */
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    box-sizing: border-box;
+    /* Fallback for older browsers */
+    background-color: rgba(255, 255, 255, 0.1);
+    -webkit-backdrop-filter: blur(10px);
 }
 
 .board-title-section {
@@ -49,11 +59,12 @@ h1 {
 }
 
 .board-title-section h1 {
-    margin: 0;
-    color: white;
-    font-size: 1.8rem;
-    font-weight: 600;
-    text-align: left;
+    margin: 0 !important;
+    color: white !important;
+    font-size: 1.8rem !important;
+    font-weight: 600 !important;
+    text-align: left !important;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3) !important;
 }
 
 .edit-title-btn {
@@ -92,6 +103,16 @@ h1 {
     color: white;
     font-size: 0.9rem;
     min-width: 150px;
+    /* Fallback for older browsers */
+    background-color: rgba(255, 255, 255, 0.1);
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+.board-selector select:focus {
+    outline: 2px solid rgba(255, 255, 255, 0.5);
+    outline-offset: 2px;
 }
 
 .board-selector select option {
@@ -109,11 +130,26 @@ h1 {
     transition: all 0.2s ease;
     font-size: 0.9rem;
     white-space: nowrap;
+    /* Fallback styles */
+    background-color: rgba(255, 255, 255, 0.1);
+    font-family: inherit;
+    font-weight: 500;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+    vertical-align: middle;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
 }
 
-.control-btn:hover {
+.control-btn:hover,
+.control-btn:focus {
     background: rgba(255, 255, 255, 0.2);
     border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .delete-btn:hover {
