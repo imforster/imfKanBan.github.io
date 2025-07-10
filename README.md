@@ -1,269 +1,302 @@
-# Trello-Like Board Application
+# Trello-Like Board Application with Multiple Board Support
 
-A simple, fully functional Trello-like board application built with vanilla HTML, CSS, and JavaScript that uses local storage for data persistence.
+A comprehensive, fully functional Trello-like board application built with vanilla HTML, CSS, and JavaScript. Features multiple board management, local storage persistence, and advanced card management capabilities.
 
-## Project Setup Steps
+## 🚀 New Features - Multiple Board Support
 
-### 1. Directory Creation
+### Board Management
+- **Create Multiple Boards**: Organize different projects with separate boards
+- **Board Switching**: Seamlessly switch between boards with dropdown selector
+- **Editable Board Titles**: Click to edit board names with inline editing
+- **Board Deletion**: Remove boards with confirmation (protects default board)
+- **Import/Export**: Backup and share boards via JSON files
 
-```bash
-mkdir -p ~/TrelloLike
-```
+### Enhanced User Interface
+- **Professional Board Header**: Clean management interface with board controls
+- **Responsive Design**: Optimized for desktop and mobile devices
+- **Visual Feedback**: Smooth transitions and hover effects
+- **Modal Dialogs**: Consistent design for board and card operations
 
-Created the project directory in the user's home folder.
+## 📋 Core Features
 
-### 2. HTML Structure (`index.html`)
+### Card Management
+- **Add/Edit/Delete Cards**: Full CRUD operations for cards
+- **Drag & Drop**: Move cards between columns visually
+- **Card Priorities**: High, Medium, Low priority levels with color coding
+- **Due Dates**: Set due dates with visual indicators (overdue, due today, due soon)
+- **Rich Descriptions**: Add detailed descriptions to cards
 
-Created the main HTML file with:
+### Search & Filter
+- **Real-time Search**: Find cards by title or description
+- **Priority Filtering**: Filter by priority levels
+- **Due Date Filtering**: Filter by due date status
+- **Combined Filters**: Use multiple filters simultaneously
 
-- Semantic HTML structure for the board layout
-- Three columns: To Do, Doing, and Done
-- Modal dialog for adding/editing cards
-- Proper accessibility attributes and meta tags
-- Links to CSS and JavaScript files
+### Data Persistence
+- **Local Storage**: Automatic saving of all data
+- **Data Migration**: Seamlessly upgrades from single-board to multi-board format
+- **Import/Export**: JSON-based data backup and sharing
+- **Cross-Session Persistence**: Remembers current board selection
 
-Key HTML elements:
+## 🛠️ Technical Architecture
 
-- `.board` container with three `.column` divs
-- Each column has a header with title and "Add Card" button
-- `.cards-container` for holding individual cards
-- Modal overlay with form inputs for card title and description
+### Class Structure
 
-### 3. CSS Styling (`styles.css`)
+#### BoardManager Class
+Handles multiple board operations:
+- Board creation, deletion, and switching
+- Data persistence and migration
+- Import/export functionality
+- Board title management
+- UI coordination
 
-Implemented comprehensive styling including:
+#### TrelloBoard Class
+Manages card operations within board context:
+- Card CRUD operations
+- Drag and drop functionality
+- Search and filtering
+- Modal management
+- Rendering and UI updates
 
-- Modern gradient background design
-- Flexbox layout for responsive columns
-- Card styling with hover effects and animations
-- Modal dialog styling with overlay
-- Drag and drop visual feedback
-- Mobile-responsive design with media queries
-- Professional color scheme and typography
-
-Key CSS features:
-
-- CSS Grid and Flexbox for layout
-- Smooth transitions and hover effects
-- Responsive design for mobile devices
-- Visual feedback for drag and drop operations
-- Professional styling matching modern web applications
-
-### 4. JavaScript Functionality (`script.js`)
-
-Built a complete `TrelloBoard` class with the following methods and features:
-
-#### Core Methods:
-
-- `constructor()` - Initialize the board and load saved data
-- `loadCards()` - Load cards from localStorage
-- `saveCards()` - Save cards to localStorage
-- `generateId()` - Create unique IDs for cards
-- `initializeEventListeners()` - Set up all event handlers
-
-#### Card Management:
-
-- `openModal(column, card)` - Open modal for adding/editing cards
-- `closeModal()` - Close the modal dialog
-- `saveCard()` - Save new or edited cards
-- `deleteCard(column, cardId)` - Delete cards with confirmation
-- `moveCard(cardId, fromColumn, toColumn)` - Move cards between columns
-
-#### UI Rendering:
-
-- `createCardElement(card, column)` - Generate HTML for individual cards
-- `renderCards(column)` - Render all cards in a specific column
-- `renderAllCards()` - Render cards in all columns
-- `addDragDropListeners(container, column)` - Add drag and drop functionality
-
-#### Utility Methods:
-
-- `escapeHtml(text)` - Prevent XSS attacks
-- `clearAllData()` - Clear all stored data
-- `exportData()` - Export data as JSON file
-- `importData(jsonData)` - Import data from JSON
-
-#### Features Implemented:
-
-- **Local Storage Persistence**: All data automatically saved and loaded
-- **Drag and Drop**: Move cards between columns with visual feedback
-- **Modal Editing**: Click cards to edit title and description
-- **Keyboard Shortcuts**: Enter to save, Escape to close modal
-- **Data Validation**: Prevent empty cards and validate input
-- **Security**: HTML escaping to prevent XSS attacks
-- **Error Handling**: Graceful error handling with user feedback
-- **Responsive Design**: Works on desktop and mobile devices
-
-### 5. Event Handling Setup
-
-Configured comprehensive event handling for:
-
-- Add card buttons in each column
-- Modal open/close interactions
-- Card editing and deletion
-- Drag and drop operations
-- Keyboard shortcuts
-- Click outside modal to close
-
-### 6. Data Structure
-
-Implemented a clean data structure stored in localStorage:
-
+### Data Structure
 ```javascript
+// Multi-board format
 {
-  todo: [
-    {
-      id: "unique-id",
-      title: "Card Title",
-      description: "Optional description",
-      createdAt: "ISO timestamp",
-      updatedAt: "ISO timestamp"
+  'board_id': {
+    id: 'board_id',
+    title: 'Board Title',
+    createdAt: '2025-07-10T04:00:00.000Z',
+    cards: {
+      todo: [
+        {
+          id: 'card_id',
+          title: 'Card Title',
+          description: 'Optional description',
+          priority: 'high|medium|low|none',
+          dueDate: '2025-07-15',
+          createdAt: '2025-07-10T04:00:00.000Z',
+          updatedAt: '2025-07-10T04:00:00.000Z'
+        }
+      ],
+      doing: [...],
+      done: [...]
     }
-  ],
-  doing: [...],
-  done: [...]
+  }
 }
 ```
 
-## Usage Instructions
+## 🚀 Getting Started
 
-### Getting Started
+### Installation
+1. Clone or download the project files
+2. Open `index.html` in a modern web browser
+3. Start creating boards and managing cards!
 
-1. Open `index.html` in a web browser
-2. The application will automatically load any previously saved data
+### Browser Requirements
+- Modern browser with ES6+ support
+- Local storage support
+- HTML5 Drag and Drop API support
+- Tested on: Chrome, Firefox, Safari, Edge
 
-### Adding Cards
+## 📖 Usage Guide
 
-1. Click the "+ Add Card" button in any column
-2. Enter a title (required) and optional description
-3. Click "Save" or press Enter
+### Board Management
 
-### Editing Cards
+#### Creating Boards
+1. Click the "+ New Board" button in the header
+2. Enter a board title
+3. Click "Create Board" or press Enter
+4. The new board becomes active automatically
 
+#### Switching Boards
+1. Use the dropdown selector in the header
+2. Select any board to switch to it
+3. Your selection is remembered across sessions
+
+#### Editing Board Titles
+1. Click the pencil icon (✏️) next to the board title
+2. Edit the title in the modal dialog
+3. Save changes or press Enter
+
+#### Deleting Boards
+1. Click the trash icon (🗑️) in the header
+2. Confirm deletion in the dialog
+3. Note: Default board and last remaining board cannot be deleted
+
+### Card Management
+
+#### Adding Cards
+1. Click "+ Add Card" in any column
+2. Enter title (required) and optional description
+3. Set priority and due date if desired
+4. Save the card
+
+#### Editing Cards
 1. Click on any existing card
-2. Modify the title or description
+2. Modify title, description, priority, or due date
 3. Save changes
 
-### Moving Cards
-
+#### Moving Cards
 1. Drag any card to a different column
 2. Drop it in the target column
-3. Changes are automatically saved
+3. Changes save automatically
 
-### Deleting Cards
-
+#### Deleting Cards
 1. Hover over a card to reveal action buttons
 2. Click the trash icon (🗑️)
-3. Confirm deletion in the dialog
+3. Confirm deletion
 
-### Keyboard Shortcuts
+### Search and Filtering
 
-- **Enter**: Save card when editing
-- **Escape**: Close modal dialog
+#### Search
+1. Type in the search box at the top
+2. Results update in real-time
+3. Searches both titles and descriptions
 
-## Technical Features
+#### Filtering
+1. Click "Filters ▾" to open filter options
+2. Select priority levels or due date ranges
+3. Filters apply immediately
+4. Use multiple filters together
 
-### Browser Compatibility
+### Data Management
 
-- Modern browsers with ES6+ support
-- Local storage support required
-- Drag and drop API support
+#### Exporting Boards
+1. Click the export button (📤) in the header
+2. A JSON file downloads automatically
+3. File name includes board title and timestamp
 
-### Performance Optimizations
+#### Importing Boards
+1. Click the import button (📥) in the header
+2. Select a JSON file from your computer
+3. Board imports as "[Title] (Imported)"
+4. Automatically switches to imported board
 
-- Efficient DOM manipulation
-- Event delegation where appropriate
-- Minimal re-rendering of unchanged elements
+## ⌨️ Keyboard Shortcuts
 
-### Security Features
+- **Enter**: Save card or board title when editing
+- **Escape**: Close any open modal dialog
+- **Click outside modal**: Close modal dialog
 
-- HTML escaping to prevent XSS
-- Input validation and sanitization
-- Safe localStorage usage
+## 🔧 Developer Features
 
-### Developer Tools
-
+### Console Commands
 Access additional features via browser console:
 
 ```javascript
 // Clear all data
-trelloBoard.clearAllData();
+boardManager.boards = { default: boardManager.boards.default };
+boardManager.saveBoards();
 
-// Export data as JSON file
-trelloBoard.exportData();
+// Export current board data
+console.log(JSON.stringify(boardManager.getCurrentBoard(), null, 2));
 
-// Import data from JSON string
-trelloBoard.importData(jsonString);
+// List all boards
+console.log(Object.keys(boardManager.boards));
+
+// Switch to specific board
+boardManager.switchToBoard('board_id');
 ```
 
-## File Structure
+### Data Migration
+The application automatically detects and migrates single-board data:
+- Existing `trelloCards` data becomes the default board
+- No data loss during migration
+- Seamless upgrade experience
+
+## 📁 File Structure
 
 ```
-~/TrelloLike/
-├── index.html          # Main HTML structure
-├── styles.css          # Complete styling and responsive design
-├── script.js           # Full JavaScript functionality
-├── README.md           # This documentation file
-└── CHAT_CONTEXT.md     # Development conversation context
+/Users/iforster/1. Projects/imfKanBan.github.io/
+├── index.html          # Main HTML with board management UI
+├── styles.css          # Complete styling including board header
+├── script.js           # BoardManager + TrelloBoard classes
+├── README.md           # This comprehensive documentation
+└── CHAT_CONTEXT.md     # Development history and context
 ```
 
-## Development Context & Future Extensions
+## 🎨 Styling Features
 
-### Using CHAT_CONTEXT.md
+### Visual Design
+- **Modern Gradient Background**: Professional appearance
+- **Glass Morphism Effects**: Translucent elements with backdrop blur
+- **Smooth Animations**: Transitions for all interactive elements
+- **Color-Coded Priorities**: Visual priority indicators
+- **Due Date Indicators**: Color-coded due date status
 
-The `CHAT_CONTEXT.md` file contains the complete conversation history and development context from when this application was created. This file is valuable for:
+### Responsive Design
+- **Mobile-First Approach**: Optimized for mobile devices
+- **Flexible Layouts**: Adapts to different screen sizes
+- **Touch-Friendly**: Large touch targets for mobile use
+- **Readable Typography**: Optimized font sizes and spacing
 
-#### For Developers
+## 🔒 Security Features
 
-- **Understanding Design Decisions**: See why certain technical choices were made
-- **Continuation of Development**: Pick up development with full context of what was built
-- **Extension Planning**: Review discussed future enhancement possibilities
-- **Code Pattern Reference**: Understand the architectural patterns used
+- **XSS Prevention**: HTML escaping for all user input
+- **Input Validation**: Sanitization of form inputs
+- **Safe Data Handling**: Proper JSON parsing with error handling
+- **Local Storage Security**: Data stays on user's device
 
-#### For Future AI Assistance
+## 🚀 Performance Optimizations
 
-- **Context Preservation**: Provide this file to AI assistants for informed development help
-- **Consistent Development**: Maintain the same coding style and architectural decisions
-- **Feature Extension**: Reference the planned enhancement areas and technical considerations
+- **Efficient DOM Updates**: Minimal re-rendering during operations
+- **Event Delegation**: Optimized event handling
+- **Lazy Rendering**: Cards rendered only when needed
+- **Memory Management**: Proper cleanup of event listeners
+- **Fast Board Switching**: No page reload required
 
-#### How to Use CHAT_CONTEXT.md
+## 🔮 Future Enhancement Roadmap
 
-1. **Before Making Changes**: Read the context to understand the current architecture
-2. **When Adding Features**: Reference the "Future Extension Possibilities" section
-3. **For AI Assistance**: Share this file with AI tools to provide development context
-4. **Code Reviews**: Use as reference for understanding implementation decisions
-5. **Documentation Updates**: Keep context current when making significant changes
+### Planned Features
+- **Cloud Sync**: AWS integration for data persistence
+- **Collaboration**: Real-time multi-user editing
+- **Board Templates**: Pre-configured board layouts
+- **Board Sharing**: Share boards via links
+- **Workspace Management**: Organize boards into workspaces
 
-#### Sharing Context with AI Assistants
+### Advanced Features
+- **Mobile App**: React Native or PWA version
+- **Integration APIs**: GitHub, Jira, calendar sync
+- **Analytics Dashboard**: Productivity metrics
+- **Notification System**: Due date reminders
+- **Advanced Permissions**: Access control for shared boards
 
-When working with AI assistants on this project:
+## 🐛 Troubleshooting
 
-```
-Please review the CHAT_CONTEXT.md file to understand the development history
-and technical decisions made for this Trello board application before helping
-with extensions or modifications.
-```
+### Common Issues
 
-This ensures consistent development practices and informed decision-making for future enhancements.
+**Board not switching**: Refresh the page and try again
+**Cards not saving**: Check if local storage is enabled
+**Import failing**: Ensure JSON file has correct format
+**Drag and drop not working**: Use a modern browser with HTML5 support
 
-## Future Enhancement Ideas
+### Data Recovery
+If data appears lost:
+1. Check browser's local storage in developer tools
+2. Look for `trelloBoards` key
+3. Export data before making changes
+4. Contact support with specific error messages
 
-- ~~Add due dates to cards~~
-- ~~Implement card priorities/labels~~
-- ~~Add search and filter functionality~~
-- Support for multiple boards
-- User authentication and cloud sync
-- Card attachments and comments
-- Keyboard navigation improvements
-- Undo/redo functionality
+## 📄 License
 
-## Browser Testing
+This project is open source and available under the MIT License.
 
-The application has been designed to work in:
+## 🤝 Contributing
 
-- Chrome/Chromium browsers
-- Firefox
-- Safari
-- Edge
+Contributions are welcome! Please:
+1. Review the CHAT_CONTEXT.md file for development history
+2. Follow existing code patterns and architecture
+3. Test thoroughly before submitting changes
+4. Update documentation for new features
 
-Requires JavaScript enabled and local storage support.
+## 📞 Support
+
+For issues, feature requests, or questions:
+1. Check the troubleshooting section
+2. Review CHAT_CONTEXT.md for technical details
+3. Create an issue with detailed information
+4. Include browser version and error messages
+
+---
+
+**Built with ❤️ using vanilla HTML, CSS, and JavaScript**
