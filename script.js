@@ -614,6 +614,19 @@ class TrelloBoard {
         this.closeModal();
     }
 
+    // Toggle card completion status
+    toggleCardCompletion(cardId, column, isCompleted) {
+        const card = this.cards[column].find(c => c.id === cardId);
+        if (card) {
+            card.completed = isCompleted;
+            card.completedDate = isCompleted ? new Date().toISOString() : null;
+            card.updatedAt = new Date().toISOString();
+            
+            this.saveCards();
+            this.renderCards(column);
+        }
+    }
+
     // Delete card
     deleteCard(column, cardId) {
         if (confirm('Are you sure you want to delete this card?')) {
@@ -647,26 +660,37 @@ class TrelloBoard {
             cardDiv.classList.add(`priority-${card.priority}`);
         }
 
-        // Due date status
+        // Due date status and completion logic
         let dueDateClass = '';
         let dueDateText = '';
+        let dueDateIcon = '📅';
+        let isCompleted = card.completed || false;
+        
         if (card.dueDate) {
             const dueDate = new Date(card.dueDate);
             const today = new Date();
             const diffTime = dueDate - today;
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-            if (diffDays < 0) {
+            if (isCompleted) {
+                dueDateClass = 'completed';
+                dueDateText = `Completed: ${card.completedDate ? new Date(card.completedDate).toLocaleDateString() : 'Done'}`;
+                dueDateIcon = '✅';
+            } else if (diffDays < 0) {
                 dueDateClass = 'overdue';
                 dueDateText = `Overdue by ${Math.abs(diffDays)} day(s)`;
+                dueDateIcon = '⚠️';
             } else if (diffDays === 0) {
                 dueDateClass = 'due-today';
                 dueDateText = 'Due today';
+                dueDateIcon = '🔥';
             } else if (diffDays <= 3) {
                 dueDateClass = 'due-soon';
                 dueDateText = `Due in ${diffDays} day(s)`;
+                dueDateIcon = '⏰';
             } else {
                 dueDateText = `Due ${dueDate.toLocaleDateString()}`;
+                dueDateIcon = '📅';
             }
             cardDiv.classList.add(dueDateClass);
         }
@@ -675,8 +699,20 @@ class TrelloBoard {
             ? `<span class="priority-badge priority-${card.priority}">${card.priority.toUpperCase()}</span>` 
             : '';
 
-        const dueDateBadge = card.dueDate 
-            ? `<span class="due-date-badge ${dueDateClass}">${dueDateText}</span>` 
+        const dueDateSection = card.dueDate 
+            ? `<div class="card-due-date ${dueDateClass}">
+                <span class="due-date-icon">${dueDateIcon}</span>
+                <span class="due-date-text">${dueDateText}</span>
+                <div class="due-date-checkbox">
+                    <input type="checkbox" 
+                           ${isCompleted ? 'checked' : ''} 
+                           data-card-id="${card.id}" 
+                           data-column="${column}"
+                           class="completion-checkbox"
+                           title="Mark as ${isCompleted ? 'incomplete' : 'complete'}">
+                    <label>Done</label>
+                </div>
+            </div>` 
             : '';
 
         cardDiv.innerHTML = `
@@ -690,8 +726,8 @@ class TrelloBoard {
             ${card.description ? `<p class="card-description">${this.escapeHtml(card.description)}</p>` : ''}
             <div class="card-badges">
                 ${priorityBadge}
-                ${dueDateBadge}
             </div>
+            ${dueDateSection}
             <div class="card-meta">
                 <small>Created: ${new Date(card.createdAt).toLocaleDateString()}</small>
             </div>
@@ -707,6 +743,15 @@ class TrelloBoard {
             cardDiv.classList.remove('dragging');
             this.draggedCard = null;
         });
+
+        // Add completion checkbox event listener
+        const checkbox = cardDiv.querySelector('.completion-checkbox');
+        if (checkbox) {
+            checkbox.addEventListener('change', (e) => {
+                e.stopPropagation(); // Prevent card click event
+                this.toggleCardCompletion(card.id, column, e.target.checked);
+            });
+        }
 
         return cardDiv;
     }
@@ -797,15 +842,16 @@ class TrelloBoard {
                 if (!card.dueDate && dueDateFilters.includes('no-date')) return true;
                 if (!card.dueDate) return false;
 
+                // Check for completed status first
+                if (dueDateFilters.includes('completed') && card.completed) return true;
+
                 const dueDate = new Date(card.dueDate);
                 const today = new Date();
                 const diffTime = dueDate - today;
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-                if (dueDateFilters.includes('overdue') && diffDays < 0) return true;
-                if (dueDateFilters.includes('today') && diffDays === 0) return true;
-                if (dueDateFilters.includes('this-week') && diffDays > 0 && diffDays <= 7) return true;
-                if (dueDateFilters.includes('this-month') && diffDays > 7 && diffDays <= 30) return true;
+                if (dueDateFilters.includes('overdue') && diffDays < 0 && !card.completed) return true;
+                if (dueDateFilters.includes('due-soon') && diffDays > 0 && diffDays <= 3 && !card.completed) return true;
 
                 return false;
             });
