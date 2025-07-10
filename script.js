@@ -1,6 +1,376 @@
-class TrelloBoard {
+// Board Manager Class - Handles multiple boards
+class BoardManager {
     constructor() {
-        this.cards = this.loadCards();
+        this.boards = this.loadBoards();
+        this.currentBoardId = this.getCurrentBoardId();
+        this.trelloBoard = null;
+        
+        this.initializeBoardManager();
+    }
+
+    // Load all boards from localStorage
+    loadBoards() {
+        const savedBoards = localStorage.getItem('trelloBoards');
+        const defaultBoards = {
+            'default': {
+                id: 'default',
+                title: 'Default Board',
+                createdAt: new Date().toISOString(),
+                cards: {
+                    todo: [],
+                    doing: [],
+                    done: []
+                }
+            }
+        };
+        
+        if (savedBoards) {
+            const boards = JSON.parse(savedBoards);
+            // Ensure default board exists
+            if (!boards.default) {
+                boards.default = defaultBoards.default;
+            }
+            return boards;
+        }
+        
+        return defaultBoards;
+    }
+
+    // Save all boards to localStorage
+    saveBoards() {
+        localStorage.setItem('trelloBoards', JSON.stringify(this.boards));
+    }
+
+    // Get current board ID from localStorage
+    getCurrentBoardId() {
+        return localStorage.getItem('currentBoardId') || 'default';
+    }
+
+    // Set current board ID in localStorage
+    setCurrentBoardId(boardId) {
+        this.currentBoardId = boardId;
+        localStorage.setItem('currentBoardId', boardId);
+    }
+
+    // Get current board data
+    getCurrentBoard() {
+        return this.boards[this.currentBoardId] || this.boards.default;
+    }
+
+    // Create new board
+    createBoard(title) {
+        const boardId = this.generateBoardId();
+        const newBoard = {
+            id: boardId,
+            title: title,
+            createdAt: new Date().toISOString(),
+            cards: {
+                todo: [],
+                doing: [],
+                done: []
+            }
+        };
+        
+        this.boards[boardId] = newBoard;
+        this.saveBoards();
+        return boardId;
+    }
+
+    // Delete board
+    deleteBoard(boardId) {
+        if (boardId === 'default') {
+            alert('Cannot delete the default board');
+            return false;
+        }
+        
+        if (Object.keys(this.boards).length <= 1) {
+            alert('Cannot delete the last board');
+            return false;
+        }
+        
+        delete this.boards[boardId];
+        
+        // If deleting current board, switch to default
+        if (this.currentBoardId === boardId) {
+            this.switchToBoard('default');
+        }
+        
+        this.saveBoards();
+        return true;
+    }
+
+    // Switch to different board
+    switchToBoard(boardId) {
+        if (!this.boards[boardId]) {
+            console.error('Board not found:', boardId);
+            return;
+        }
+        
+        this.setCurrentBoardId(boardId);
+        this.updateBoardSelector();
+        this.updateBoardTitle();
+        
+        // Reinitialize TrelloBoard with new board data
+        if (this.trelloBoard) {
+            this.trelloBoard.switchBoard(this.getCurrentBoard().cards);
+        }
+    }
+
+    // Update board title
+    updateBoardTitle(newTitle = null) {
+        const currentBoard = this.getCurrentBoard();
+        if (newTitle) {
+            currentBoard.title = newTitle;
+            this.saveBoards();
+        }
+        
+        document.getElementById('current-board-title').textContent = currentBoard.title;
+        
+        // Update selector option
+        const selector = document.getElementById('board-select');
+        const option = selector.querySelector(`option[value="${this.currentBoardId}"]`);
+        if (option) {
+            option.textContent = currentBoard.title;
+        }
+    }
+
+    // Update board selector dropdown
+    updateBoardSelector() {
+        const selector = document.getElementById('board-select');
+        selector.innerHTML = '';
+        
+        Object.values(this.boards).forEach(board => {
+            const option = document.createElement('option');
+            option.value = board.id;
+            option.textContent = board.title;
+            if (board.id === this.currentBoardId) {
+                option.selected = true;
+            }
+            selector.appendChild(option);
+        });
+    }
+
+    // Generate unique board ID
+    generateBoardId() {
+        return 'board_' + Date.now().toString(36) + Math.random().toString(36).substr(2);
+    }
+
+    // Export current board
+    exportBoard() {
+        const currentBoard = this.getCurrentBoard();
+        const dataStr = JSON.stringify(currentBoard, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(dataBlob);
+        link.download = `${currentBoard.title.replace(/[^a-z0-9]/gi, '_')}_board.json`;
+        link.click();
+    }
+
+    // Import board
+    importBoard(jsonData) {
+        try {
+            const boardData = JSON.parse(jsonData);
+            
+            // Validate board structure
+            if (!boardData.title || !boardData.cards) {
+                throw new Error('Invalid board format');
+            }
+            
+            // Create new board with imported data
+            const boardId = this.createBoard(boardData.title + ' (Imported)');
+            this.boards[boardId].cards = boardData.cards;
+            this.saveBoards();
+            
+            // Switch to imported board
+            this.switchToBoard(boardId);
+            
+            alert('Board imported successfully!');
+        } catch (error) {
+            alert('Error importing board: ' + error.message);
+        }
+    }
+
+    // Initialize board manager UI
+    initializeBoardManager() {
+        this.updateBoardSelector();
+        this.updateBoardTitle();
+        this.setupBoardEventListeners();
+        
+        // Initialize TrelloBoard with current board data
+        this.trelloBoard = new TrelloBoard(this);
+    }
+
+    // Setup event listeners for board management
+    setupBoardEventListeners() {
+        // Board selector change
+        document.getElementById('board-select').addEventListener('change', (e) => {
+            this.switchToBoard(e.target.value);
+        });
+
+        // Edit board title
+        document.getElementById('edit-board-title').addEventListener('click', () => {
+            this.openBoardTitleModal();
+        });
+
+        // New board button
+        document.getElementById('new-board-btn').addEventListener('click', () => {
+            this.openNewBoardModal();
+        });
+
+        // Delete board button
+        document.getElementById('delete-board-btn').addEventListener('click', () => {
+            this.confirmDeleteBoard();
+        });
+
+        // Export board
+        document.getElementById('export-board-btn').addEventListener('click', () => {
+            this.exportBoard();
+        });
+
+        // Import board
+        document.getElementById('import-board-btn').addEventListener('click', () => {
+            document.getElementById('import-file-input').click();
+        });
+
+        document.getElementById('import-file-input').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    this.importBoard(e.target.result);
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        // Board title modal events
+        this.setupBoardTitleModal();
+        this.setupNewBoardModal();
+    }
+
+    // Setup board title modal
+    setupBoardTitleModal() {
+        const modal = document.getElementById('board-title-modal');
+        const closeBtn = document.getElementById('close-board-title-modal');
+        const saveBtn = document.getElementById('save-board-title');
+        const cancelBtn = document.getElementById('cancel-board-title');
+
+        closeBtn.addEventListener('click', () => this.closeBoardTitleModal());
+        cancelBtn.addEventListener('click', () => this.closeBoardTitleModal());
+        saveBtn.addEventListener('click', () => this.saveBoardTitle());
+
+        // Close modal when clicking outside
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                this.closeBoardTitleModal();
+            }
+        });
+
+        // Handle Enter key
+        document.getElementById('board-title-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.saveBoardTitle();
+            }
+        });
+    }
+
+    // Setup new board modal
+    setupNewBoardModal() {
+        const modal = document.getElementById('new-board-modal');
+        const closeBtn = document.getElementById('close-new-board-modal');
+        const createBtn = document.getElementById('create-board');
+        const cancelBtn = document.getElementById('cancel-new-board');
+
+        closeBtn.addEventListener('click', () => this.closeNewBoardModal());
+        cancelBtn.addEventListener('click', () => this.closeNewBoardModal());
+        createBtn.addEventListener('click', () => this.createNewBoard());
+
+        // Close modal when clicking outside
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                this.closeNewBoardModal();
+            }
+        });
+
+        // Handle Enter key
+        document.getElementById('new-board-title-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.createNewBoard();
+            }
+        });
+    }
+
+    // Open board title modal
+    openBoardTitleModal() {
+        const modal = document.getElementById('board-title-modal');
+        const input = document.getElementById('board-title-input');
+        
+        input.value = this.getCurrentBoard().title;
+        modal.style.display = 'block';
+        input.focus();
+        input.select();
+    }
+
+    // Close board title modal
+    closeBoardTitleModal() {
+        document.getElementById('board-title-modal').style.display = 'none';
+    }
+
+    // Save board title
+    saveBoardTitle() {
+        const input = document.getElementById('board-title-input');
+        const newTitle = input.value.trim();
+        
+        if (newTitle) {
+            this.updateBoardTitle(newTitle);
+            this.closeBoardTitleModal();
+        }
+    }
+
+    // Open new board modal
+    openNewBoardModal() {
+        const modal = document.getElementById('new-board-modal');
+        const input = document.getElementById('new-board-title-input');
+        
+        input.value = '';
+        modal.style.display = 'block';
+        input.focus();
+    }
+
+    // Close new board modal
+    closeNewBoardModal() {
+        document.getElementById('new-board-modal').style.display = 'none';
+    }
+
+    // Create new board
+    createNewBoard() {
+        const input = document.getElementById('new-board-title-input');
+        const title = input.value.trim();
+        
+        if (title) {
+            const boardId = this.createBoard(title);
+            this.switchToBoard(boardId);
+            this.closeNewBoardModal();
+        }
+    }
+
+    // Confirm delete board
+    confirmDeleteBoard() {
+        const currentBoard = this.getCurrentBoard();
+        if (confirm(`Are you sure you want to delete "${currentBoard.title}"? This action cannot be undone.`)) {
+            if (this.deleteBoard(this.currentBoardId)) {
+                this.updateBoardSelector();
+            }
+        }
+    }
+}
+
+// Enhanced TrelloBoard Class with multi-board support
+class TrelloBoard {
+    constructor(boardManager) {
+        this.boardManager = boardManager;
+        this.cards = this.boardManager.getCurrentBoard().cards;
         this.currentEditingCard = null;
         this.draggedCard = null;
         
@@ -8,19 +378,16 @@ class TrelloBoard {
         this.renderAllCards();
     }
 
-    // Load cards from localStorage
-    loadCards() {
-        const savedCards = localStorage.getItem('trelloCards');
-        return savedCards ? JSON.parse(savedCards) : {
-            todo: [],
-            doing: [],
-            done: []
-        };
+    // Switch to different board data
+    switchBoard(newCards) {
+        this.cards = newCards;
+        this.renderAllCards();
     }
 
-    // Save cards to localStorage
+    // Save cards to current board
     saveCards() {
-        localStorage.setItem('trelloCards', JSON.stringify(this.cards));
+        this.boardManager.getCurrentBoard().cards = this.cards;
+        this.boardManager.saveBoards();
     }
 
     // Generate unique ID for cards
@@ -49,363 +416,129 @@ class TrelloBoard {
         saveBtn.addEventListener('click', () => this.saveCard());
 
         // Close modal when clicking outside
-        window.addEventListener('click', (e) => {
+        modal.addEventListener('click', (e) => {
             if (e.target === modal) {
                 this.closeModal();
             }
         });
 
-        // Enter key to save card
+        // Handle Enter key in modal
         document.getElementById('card-title').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 this.saveCard();
             }
         });
-        
-        // Search and filter event listeners
+
+        // Handle Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                this.closeModal();
+            }
+        });
+
+        // Search functionality
         const searchInput = document.getElementById('search-input');
         const searchButton = document.getElementById('search-button');
+        
+        if (searchInput && searchButton) {
+            searchInput.addEventListener('input', () => this.handleSearch());
+            searchButton.addEventListener('click', () => this.handleSearch());
+        }
+
+        // Filter functionality
         const filterToggle = document.getElementById('filter-toggle');
         const filterDropdown = document.getElementById('filter-dropdown');
-        const applyFiltersBtn = document.getElementById('apply-filters');
-        const clearFiltersBtn = document.getElementById('clear-filters');
         
-        // Search functionality
-        searchButton.addEventListener('click', () => {
-            this.searchCards(searchInput.value.trim());
-        });
-        
-        searchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                this.searchCards(searchInput.value.trim());
-            }
-        });
-        
-        // Filter dropdown toggle
-        filterToggle.addEventListener('click', () => {
-            filterDropdown.classList.toggle('show');
-            this.populateLabelFilters();
-        });
-        
-        // Close filter dropdown when clicking outside
-        window.addEventListener('click', (e) => {
-            if (!e.target.closest('.filter-container') && filterDropdown.classList.contains('show')) {
-                filterDropdown.classList.remove('show');
-            }
-        });
-        
-        // Apply filters
-        applyFiltersBtn.addEventListener('click', () => {
-            this.applyFilters();
-            filterDropdown.classList.remove('show');
-        });
-        
-        // Clear filters
-        clearFiltersBtn.addEventListener('click', () => {
-            this.clearFilters();
-            filterDropdown.classList.remove('show');
-        });
-    }
-    
-    // Search cards by title, description, or labels
-    searchCards(query) {
-        if (!query) {
-            this.renderAllCards();
-            return;
-        }
-        
-        query = query.toLowerCase();
-        
-        // Clear existing highlights
-        document.querySelectorAll('.card.highlight').forEach(card => {
-            card.classList.remove('highlight');
-        });
-        
-        // Remove any existing "no results" messages
-        document.querySelectorAll('.no-results').forEach(msg => msg.remove());
-        
-        let foundResults = false;
-        
-        // Search in each column
-        ['todo', 'doing', 'done'].forEach(column => {
-            const container = document.getElementById(`${column}-cards`);
-            let columnHasResults = false;
-            
-            // Show all cards first
-            container.querySelectorAll('.card').forEach(cardElement => {
-                cardElement.style.display = 'block';
-                
-                const cardId = cardElement.dataset.cardId;
-                const card = this.cards[column].find(c => c.id === cardId);
-                
-                if (card) {
-                    // Check if card matches search query
-                    const titleMatch = card.title.toLowerCase().includes(query);
-                    const descMatch = card.description && card.description.toLowerCase().includes(query);
-                    const labelMatch = card.labels && card.labels.some(label => 
-                        label.toLowerCase().includes(query)
-                    );
-                    
-                    if (titleMatch || descMatch || labelMatch) {
-                        cardElement.classList.add('highlight');
-                        columnHasResults = true;
-                        foundResults = true;
-                    } else {
-                        cardElement.style.display = 'none';
-                    }
+        if (filterToggle && filterDropdown) {
+            filterToggle.addEventListener('click', () => {
+                filterDropdown.style.display = filterDropdown.style.display === 'block' ? 'none' : 'block';
+            });
+
+            // Filter checkboxes
+            document.querySelectorAll('.filter-priority, .filter-due-date').forEach(checkbox => {
+                checkbox.addEventListener('change', () => this.applyFilters());
+            });
+
+            // Close filter dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!filterToggle.contains(e.target) && !filterDropdown.contains(e.target)) {
+                    filterDropdown.style.display = 'none';
                 }
             });
-            
-            // Show "no results" message if column has no matching cards
-            if (!columnHasResults) {
-                const noResults = document.createElement('div');
-                noResults.className = 'no-results';
-                noResults.textContent = 'No matching cards';
-                container.appendChild(noResults);
-            }
-        });
-        
-        if (!foundResults) {
-            alert('No cards match your search query.');
         }
-    }
-    
-    // Populate label filters based on existing labels
-    populateLabelFilters() {
-        const labelFiltersContainer = document.getElementById('label-filters');
-        labelFiltersContainer.innerHTML = '';
-        
-        // Collect all unique labels
-        const allLabels = new Set();
-        
-        ['todo', 'doing', 'done'].forEach(column => {
-            this.cards[column].forEach(card => {
-                if (card.labels && card.labels.length) {
-                    card.labels.forEach(label => allLabels.add(label));
-                }
-            });
-        });
-        
-        // If no labels exist, show a message
-        if (allLabels.size === 0) {
-            const noLabels = document.createElement('div');
-            noLabels.textContent = 'No labels found';
-            noLabels.style.fontStyle = 'italic';
-            noLabels.style.color = '#666';
-            labelFiltersContainer.appendChild(noLabels);
-            return;
-        }
-        
-        // Create checkbox for each label
-        allLabels.forEach(label => {
-            const labelContainer = document.createElement('label');
-            
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.className = 'filter-label';
-            checkbox.value = label;
-            
-            labelContainer.appendChild(checkbox);
-            labelContainer.appendChild(document.createTextNode(` ${label}`));
-            
-            labelFiltersContainer.appendChild(labelContainer);
-        });
-    }
-    
-    // Apply selected filters
-    applyFilters() {
-        // Get selected priorities
-        const selectedPriorities = Array.from(
-            document.querySelectorAll('.filter-priority:checked')
-        ).map(checkbox => checkbox.value);
-        
-        // Get selected due date filters
-        const selectedDueFilters = Array.from(
-            document.querySelectorAll('.filter-due:checked')
-        ).map(checkbox => checkbox.value);
-        
-        // Get selected labels
-        const selectedLabels = Array.from(
-            document.querySelectorAll('.filter-label:checked')
-        ).map(checkbox => checkbox.value);
-        
-        // If no filters selected, show all cards
-        if (selectedPriorities.length === 0 && 
-            selectedDueFilters.length === 0 && 
-            selectedLabels.length === 0) {
-            this.renderAllCards();
-            return;
-        }
-        
-        // Remove any existing "no results" messages
-        document.querySelectorAll('.no-results').forEach(msg => msg.remove());
-        
-        // Apply filters to each column
-        ['todo', 'doing', 'done'].forEach(column => {
-            const container = document.getElementById(`${column}-cards`);
-            let columnHasResults = false;
-            
-            container.querySelectorAll('.card').forEach(cardElement => {
-                const cardId = cardElement.dataset.cardId;
-                const card = this.cards[column].find(c => c.id === cardId);
-                
-                if (card) {
-                    // Check priority filter
-                    const priorityMatch = selectedPriorities.length === 0 || 
-                        selectedPriorities.includes(card.priority || 'none');
-                    
-                    // Check due date filter
-                    let dueMatch = true;
-                    if (selectedDueFilters.length > 0) {
-                        if (!card.dueDate && !selectedDueFilters.includes('no-date')) {
-                            dueMatch = false;
-                        } else if (card.dueDate) {
-                            const dueDateClass = this.getDueDateClass(card.dueDate, card.dueDateCompleted);
-                            dueMatch = selectedDueFilters.includes(dueDateClass);
-                        }
-                    }
-                    
-                    // Check label filter
-                    let labelMatch = true;
-                    if (selectedLabels.length > 0) {
-                        labelMatch = card.labels && selectedLabels.some(label => 
-                            card.labels.includes(label)
-                        );
-                    }
-                    
-                    // Show or hide card based on filter matches
-                    if (priorityMatch && dueMatch && labelMatch) {
-                        cardElement.style.display = 'block';
-                        columnHasResults = true;
-                    } else {
-                        cardElement.style.display = 'none';
-                    }
-                }
-            });
-            
-            // Show "no results" message if column has no matching cards
-            if (!columnHasResults) {
-                const noResults = document.createElement('div');
-                noResults.className = 'no-results';
-                noResults.textContent = 'No matching cards';
-                container.appendChild(noResults);
-            }
-        });
-    }
-    
-    // Clear all filters and search
-    clearFilters() {
-        // Uncheck all filter checkboxes
-        document.querySelectorAll('.filter-priority, .filter-due, .filter-label').forEach(checkbox => {
-            checkbox.checked = false;
-        });
-        
-        // Clear search input
-        document.getElementById('search-input').value = '';
-        
-        // Show all cards
-        this.renderAllCards();
     }
 
     // Open modal for adding/editing cards
     openModal(column, card = null) {
         const modal = document.getElementById('card-modal');
-        const modalTitle = document.getElementById('modal-title');
-        const cardTitle = document.getElementById('card-title');
-        const cardDescription = document.getElementById('card-description');
-        const cardDueDate = document.getElementById('card-due-date');
-        const cardLabels = document.getElementById('card-labels');
-        const priorityRadios = document.querySelectorAll('input[name="priority"]');
+        const titleInput = document.getElementById('card-title');
+        const descInput = document.getElementById('card-description');
+        const prioritySelect = document.getElementById('card-priority');
+        const dueDateInput = document.getElementById('card-due-date');
+        const modalTitle = modal.querySelector('h2');
 
         if (card) {
             // Editing existing card
             modalTitle.textContent = 'Edit Card';
-            cardTitle.value = card.title;
-            cardDescription.value = card.description || '';
-            cardDueDate.value = card.dueDate || '';
-            cardLabels.value = card.labels ? card.labels.join(', ') : '';
-            
-            // Set priority radio button
-            priorityRadios.forEach(radio => {
-                radio.checked = (radio.value === (card.priority || 'none'));
-            });
-            
-            this.currentEditingCard = { ...card, column };
+            titleInput.value = card.title;
+            descInput.value = card.description || '';
+            if (prioritySelect) prioritySelect.value = card.priority || 'none';
+            if (dueDateInput) dueDateInput.value = card.dueDate || '';
+            this.currentEditingCard = { column, card };
         } else {
             // Adding new card
             modalTitle.textContent = 'Add New Card';
-            cardTitle.value = '';
-            cardDescription.value = '';
-            cardDueDate.value = '';
-            cardLabels.value = '';
-            
-            // Reset priority to 'none'
-            priorityRadios.forEach(radio => {
-                radio.checked = (radio.value === 'none');
-            });
-            
-            this.currentEditingCard = { column };
+            titleInput.value = '';
+            descInput.value = '';
+            if (prioritySelect) prioritySelect.value = 'none';
+            if (dueDateInput) dueDateInput.value = '';
+            this.currentEditingCard = { column, card: null };
         }
 
         modal.style.display = 'block';
-        cardTitle.focus();
+        titleInput.focus();
     }
 
     // Close modal
     closeModal() {
-        const modal = document.getElementById('card-modal');
-        modal.style.display = 'none';
+        document.getElementById('card-modal').style.display = 'none';
         this.currentEditingCard = null;
     }
 
     // Save card (add new or update existing)
     saveCard() {
-        const title = document.getElementById('card-title').value.trim();
-        const description = document.getElementById('card-description').value.trim();
-        const dueDate = document.getElementById('card-due-date').value;
-        const labelsInput = document.getElementById('card-labels').value.trim();
-        
-        // Get selected priority
-        const selectedPriority = document.querySelector('input[name="priority"]:checked').value;
-        const priority = selectedPriority !== 'none' ? selectedPriority : null;
-        
-        // Process labels
-        const labels = labelsInput ? 
-            labelsInput.split(',').map(label => label.trim()).filter(label => label) : 
-            [];
+        const titleInput = document.getElementById('card-title');
+        const descInput = document.getElementById('card-description');
+        const prioritySelect = document.getElementById('card-priority');
+        const dueDateInput = document.getElementById('card-due-date');
+
+        const title = titleInput.value.trim();
+        const description = descInput.value.trim();
+        const priority = prioritySelect ? prioritySelect.value : 'none';
+        const dueDate = dueDateInput ? dueDateInput.value : '';
 
         if (!title) {
             alert('Please enter a card title');
             return;
         }
 
-        const { column, id } = this.currentEditingCard;
+        const { column, card } = this.currentEditingCard;
 
-        if (id) {
+        if (card) {
             // Update existing card
-            const cardIndex = this.cards[column].findIndex(card => card.id === id);
-            if (cardIndex !== -1) {
-                this.cards[column][cardIndex] = {
-                    ...this.cards[column][cardIndex],
-                    title,
-                    description,
-                    dueDate: dueDate || null,
-                    dueDateCompleted: this.cards[column][cardIndex].dueDateCompleted || false,
-                    priority,
-                    labels,
-                    updatedAt: new Date().toISOString()
-                };
-            }
+            card.title = title;
+            card.description = description;
+            card.priority = priority;
+            card.dueDate = dueDate;
+            card.updatedAt = new Date().toISOString();
         } else {
             // Add new card
             const newCard = {
                 id: this.generateId(),
-                title,
-                description,
-                dueDate: dueDate || null,
-                dueDateCompleted: false,
-                priority,
-                labels,
+                title: title,
+                description: description,
+                priority: priority,
+                dueDate: dueDate,
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
             };
@@ -434,12 +567,10 @@ class TrelloBoard {
             card.updatedAt = new Date().toISOString();
             this.cards[toColumn].push(card);
             this.saveCards();
-            this.renderCards(fromColumn);
-            this.renderCards(toColumn);
         }
     }
 
-    // Create card HTML element
+    // Create card element
     createCardElement(card, column) {
         const cardDiv = document.createElement('div');
         cardDiv.className = 'card';
@@ -447,89 +578,65 @@ class TrelloBoard {
         cardDiv.dataset.cardId = card.id;
         cardDiv.dataset.column = column;
 
-        // Create card content
-        let cardContent = `
-            <div class="card-actions">
-                <button class="card-action-btn edit-btn" title="Edit">✏️</button>
-                <button class="card-action-btn delete-btn" title="Delete">🗑️</button>
-            </div>
-            <div class="card-title">${this.escapeHtml(card.title)}</div>
-        `;
-        
-        // Add description if exists
-        if (card.description) {
-            cardContent += `<div class="card-description">${this.escapeHtml(card.description)}</div>`;
-        }
-        
-        // Add labels if exist
-        if (card.labels && card.labels.length > 0) {
-            cardContent += '<div class="card-labels">';
-            card.labels.forEach(label => {
-                cardContent += `<span class="card-label">${this.escapeHtml(label)}</span>`;
-            });
-            cardContent += '</div>';
+        // Priority class
+        if (card.priority && card.priority !== 'none') {
+            cardDiv.classList.add(`priority-${card.priority}`);
         }
 
-        // Add due date if exists
+        // Due date status
+        let dueDateClass = '';
+        let dueDateText = '';
         if (card.dueDate) {
-            const dueDateClass = this.getDueDateClass(card.dueDate, card.dueDateCompleted);
-            const formattedDate = this.formatDueDate(card.dueDate);
-            const checkboxHtml = `
-                <div class="due-date-checkbox">
-                    <input type="checkbox" id="due-${card.id}" 
-                        ${card.dueDateCompleted ? 'checked' : ''}>
-                    <label for="due-${card.id}">Complete</label>
-                </div>
-            `;
-            
-            cardContent += `
-                <div class="card-due-date ${dueDateClass}">
-                    <span class="due-date-icon">📅</span>
-                    <span>Due ${formattedDate}</span>
-                    ${checkboxHtml}
-                </div>
-            `;
-        }
-        
-        // Add priority badge if exists
-        if (card.priority) {
-            cardContent += `<div class="card-priority ${card.priority}">${card.priority.charAt(0).toUpperCase() + card.priority.slice(1)}</div>`;
-        }
+            const dueDate = new Date(card.dueDate);
+            const today = new Date();
+            const diffTime = dueDate - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-        cardDiv.innerHTML = cardContent;
-
-        // Add event listeners
-        cardDiv.addEventListener('click', (e) => {
-            if (!e.target.classList.contains('card-action-btn') && 
-                !e.target.type === 'checkbox') {
-                this.openModal(column, card);
+            if (diffDays < 0) {
+                dueDateClass = 'overdue';
+                dueDateText = `Overdue by ${Math.abs(diffDays)} day(s)`;
+            } else if (diffDays === 0) {
+                dueDateClass = 'due-today';
+                dueDateText = 'Due today';
+            } else if (diffDays <= 3) {
+                dueDateClass = 'due-soon';
+                dueDateText = `Due in ${diffDays} day(s)`;
+            } else {
+                dueDateText = `Due ${dueDate.toLocaleDateString()}`;
             }
-        });
-
-        cardDiv.querySelector('.edit-btn').addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.openModal(column, card);
-        });
-
-        cardDiv.querySelector('.delete-btn').addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.deleteCard(column, card.id);
-        });
-
-        // Add due date checkbox event listener if due date exists
-        if (card.dueDate) {
-            const checkbox = cardDiv.querySelector(`#due-${card.id}`);
-            checkbox.addEventListener('change', (e) => {
-                e.stopPropagation();
-                this.toggleDueDateCompleted(column, card.id, e.target.checked);
-            });
+            cardDiv.classList.add(dueDateClass);
         }
 
-        // Drag and drop event listeners
+        const priorityBadge = card.priority && card.priority !== 'none' 
+            ? `<span class="priority-badge priority-${card.priority}">${card.priority.toUpperCase()}</span>` 
+            : '';
+
+        const dueDateBadge = card.dueDate 
+            ? `<span class="due-date-badge ${dueDateClass}">${dueDateText}</span>` 
+            : '';
+
+        cardDiv.innerHTML = `
+            <div class="card-header">
+                <h3>${this.escapeHtml(card.title)}</h3>
+                <div class="card-actions">
+                    <button class="edit-btn" onclick="trelloBoard.openModal('${column}', trelloBoard.cards.${column}.find(c => c.id === '${card.id}'))" title="Edit card">✏️</button>
+                    <button class="delete-btn" onclick="trelloBoard.deleteCard('${column}', '${card.id}')" title="Delete card">🗑️</button>
+                </div>
+            </div>
+            ${card.description ? `<p class="card-description">${this.escapeHtml(card.description)}</p>` : ''}
+            <div class="card-badges">
+                ${priorityBadge}
+                ${dueDateBadge}
+            </div>
+            <div class="card-meta">
+                <small>Created: ${new Date(card.createdAt).toLocaleDateString()}</small>
+            </div>
+        `;
+
+        // Add drag event listeners
         cardDiv.addEventListener('dragstart', (e) => {
-            this.draggedCard = { id: card.id, column };
+            this.draggedCard = { id: card.id, column: column };
             cardDiv.classList.add('dragging');
-            e.dataTransfer.effectAllowed = 'move';
         });
 
         cardDiv.addEventListener('dragend', () => {
@@ -540,90 +647,23 @@ class TrelloBoard {
         return cardDiv;
     }
 
-    // Format due date for display
-    formatDueDate(dateString) {
-        const date = new Date(dateString);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        
-        const yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
-        
-        // Check if date is today, tomorrow, or yesterday
-        if (date.toDateString() === today.toDateString()) {
-            return 'today';
-        } else if (date.toDateString() === tomorrow.toDateString()) {
-            return 'tomorrow';
-        } else if (date.toDateString() === yesterday.toDateString()) {
-            return 'yesterday';
-        } else {
-            // Format as Month Day (e.g., Jul 15)
-            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        }
-    }
-
-    // Get due date class based on date and completion status
-    getDueDateClass(dateString, completed) {
-        if (completed) {
-            return 'completed';
-        }
-        
-        const dueDate = new Date(dateString);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        const threeDaysFromNow = new Date(today);
-        threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
-        
-        if (dueDate < today) {
-            return 'overdue';
-        } else if (dueDate <= threeDaysFromNow) {
-            return 'due-soon';
-        }
-        
-        return '';
-    }
-
-    // Toggle due date completed status
-    toggleDueDateCompleted(column, cardId, completed) {
-        const cardIndex = this.cards[column].findIndex(card => card.id === cardId);
-        if (cardIndex !== -1) {
-            this.cards[column][cardIndex].dueDateCompleted = completed;
-            this.cards[column][cardIndex].updatedAt = new Date().toISOString();
-            this.saveCards();
-            this.renderCards(column);
-        }
-    }
-
-    // Render cards for a specific column
+    // Render cards in a specific column
     renderCards(column) {
-        const container = document.getElementById(`${column}-cards`);
+        const container = document.querySelector(`[data-column="${column}"] .cards-container`);
+        if (!container) return;
+
         container.innerHTML = '';
 
-        // Remove any "no results" messages
-        const noResults = container.querySelector('.no-results');
-        if (noResults) {
-            noResults.remove();
-        }
+        // Apply current filters
+        const filteredCards = this.getFilteredCards(this.cards[column]);
 
-        this.cards[column].forEach(card => {
+        filteredCards.forEach(card => {
             const cardElement = this.createCardElement(card, column);
             container.appendChild(cardElement);
         });
 
-        // Add drag and drop listeners to the container
+        // Add drag and drop listeners to container
         this.addDragDropListeners(container, column);
-        
-        // If column is empty, show a message
-        if (this.cards[column].length === 0) {
-            const emptyMessage = document.createElement('div');
-            emptyMessage.className = 'no-results';
-            emptyMessage.textContent = 'No cards in this column';
-            container.appendChild(emptyMessage);
-        }
     }
 
     // Render all cards
@@ -633,28 +673,81 @@ class TrelloBoard {
         });
     }
 
-    // Add drag and drop listeners to column containers
+    // Add drag and drop listeners to container
     addDragDropListeners(container, column) {
         container.addEventListener('dragover', (e) => {
             e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-            container.parentElement.classList.add('drag-over');
+            container.classList.add('drag-over');
         });
 
-        container.addEventListener('dragleave', (e) => {
-            if (!container.contains(e.relatedTarget)) {
-                container.parentElement.classList.remove('drag-over');
-            }
+        container.addEventListener('dragleave', () => {
+            container.classList.remove('drag-over');
         });
 
         container.addEventListener('drop', (e) => {
             e.preventDefault();
-            container.parentElement.classList.remove('drag-over');
-            
+            container.classList.remove('drag-over');
+
             if (this.draggedCard && this.draggedCard.column !== column) {
                 this.moveCard(this.draggedCard.id, this.draggedCard.column, column);
+                this.renderCards(this.draggedCard.column);
+                this.renderCards(column);
             }
         });
+    }
+
+    // Handle search functionality
+    handleSearch() {
+        const searchTerm = document.getElementById('search-input').value.toLowerCase();
+        this.currentSearchTerm = searchTerm;
+        this.renderAllCards();
+    }
+
+    // Apply filters
+    applyFilters() {
+        this.renderAllCards();
+    }
+
+    // Get filtered cards based on search and filters
+    getFilteredCards(cards) {
+        let filtered = [...cards];
+
+        // Apply search filter
+        if (this.currentSearchTerm) {
+            filtered = filtered.filter(card => 
+                card.title.toLowerCase().includes(this.currentSearchTerm) ||
+                (card.description && card.description.toLowerCase().includes(this.currentSearchTerm))
+            );
+        }
+
+        // Apply priority filters
+        const priorityFilters = Array.from(document.querySelectorAll('.filter-priority:checked')).map(cb => cb.value);
+        if (priorityFilters.length > 0) {
+            filtered = filtered.filter(card => priorityFilters.includes(card.priority || 'none'));
+        }
+
+        // Apply due date filters
+        const dueDateFilters = Array.from(document.querySelectorAll('.filter-due-date:checked')).map(cb => cb.value);
+        if (dueDateFilters.length > 0) {
+            filtered = filtered.filter(card => {
+                if (!card.dueDate && dueDateFilters.includes('no-date')) return true;
+                if (!card.dueDate) return false;
+
+                const dueDate = new Date(card.dueDate);
+                const today = new Date();
+                const diffTime = dueDate - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                if (dueDateFilters.includes('overdue') && diffDays < 0) return true;
+                if (dueDateFilters.includes('today') && diffDays === 0) return true;
+                if (dueDateFilters.includes('this-week') && diffDays > 0 && diffDays <= 7) return true;
+                if (dueDateFilters.includes('this-month') && diffDays > 7 && diffDays <= 30) return true;
+
+                return false;
+            });
+        }
+
+        return filtered;
     }
 
     // Escape HTML to prevent XSS
@@ -664,63 +757,21 @@ class TrelloBoard {
         return div.innerHTML;
     }
 
-    // Clear all data (for testing purposes)
+    // Clear all data (for debugging)
     clearAllData() {
-        if (confirm('Are you sure you want to clear all cards? This cannot be undone.')) {
-            localStorage.removeItem('trelloCards');
+        if (confirm('Are you sure you want to clear all data? This cannot be undone.')) {
             this.cards = { todo: [], doing: [], done: [] };
+            this.saveCards();
             this.renderAllCards();
-        }
-    }
-
-    // Export data as JSON
-    exportData() {
-        const dataStr = JSON.stringify(this.cards, null, 2);
-        const dataBlob = new Blob([dataStr], { type: 'application/json' });
-        const url = URL.createObjectURL(dataBlob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'trello-board-data.json';
-        link.click();
-        URL.revokeObjectURL(url);
-    }
-
-    // Import data from JSON
-    importData(jsonData) {
-        try {
-            const importedCards = JSON.parse(jsonData);
-            if (importedCards.todo && importedCards.doing && importedCards.done) {
-                this.cards = importedCards;
-                this.saveCards();
-                this.renderAllCards();
-                alert('Data imported successfully!');
-            } else {
-                alert('Invalid data format');
-            }
-        } catch (error) {
-            alert('Error importing data: ' + error.message);
         }
     }
 }
 
-// Initialize the Trello board when the page loads
+// Initialize the application
+let boardManager;
+let trelloBoard;
+
 document.addEventListener('DOMContentLoaded', () => {
-    window.trelloBoard = new TrelloBoard();
-    
-    // Add keyboard shortcuts
-    document.addEventListener('keydown', (e) => {
-        // Escape key to close modal
-        if (e.key === 'Escape') {
-            const modal = document.getElementById('card-modal');
-            if (modal.style.display === 'block') {
-                window.trelloBoard.closeModal();
-            }
-        }
-    });
-    
-    console.log('Trello Board initialized!');
-    console.log('Available methods:');
-    console.log('- trelloBoard.clearAllData() - Clear all cards');
-    console.log('- trelloBoard.exportData() - Export data as JSON');
-    console.log('- trelloBoard.importData(jsonString) - Import data from JSON');
+    boardManager = new BoardManager();
+    trelloBoard = boardManager.trelloBoard; // For backward compatibility with existing onclick handlers
 });

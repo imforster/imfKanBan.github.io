@@ -8,7 +8,26 @@
 </head>
 <body>
     <div class="container">
-        <h1>My Trello Board</h1>
+        <div class="board-header">
+            <div class="board-title-section">
+                <h1 id="current-board-title">My Trello Board</h1>
+                <button id="edit-board-title" class="edit-title-btn" title="Edit board title">✏️</button>
+            </div>
+            <div class="board-controls">
+                <div class="board-selector">
+                    <select id="board-select">
+                        <option value="default">Default Board</option>
+                    </select>
+                    <button id="new-board-btn" class="control-btn" title="Create new board">+ New Board</button>
+                    <button id="delete-board-btn" class="control-btn delete-btn" title="Delete current board">🗑️</button>
+                </div>
+                <div class="board-actions">
+                    <button id="export-board-btn" class="control-btn" title="Export board">📤</button>
+                    <button id="import-board-btn" class="control-btn" title="Import board">📥</button>
+                    <input type="file" id="import-file-input" accept=".json" style="display: none;">
+                </div>
+            </div>
+        </div>
         
         <div class="board-container">
             <div class="search-filter-container">
@@ -119,6 +138,42 @@
                 <button id="save-card">Save</button>
                 <button id="cancel-card">Cancel</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Board Title Edit Modal -->
+    <div id="board-title-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="close-board-title-modal">&times;</span>
+            <h2>Edit Board Title</h2>
+            <form id="board-title-form">
+                <div class="form-group">
+                    <label for="board-title-input">Board Title:</label>
+                    <input type="text" id="board-title-input" required maxlength="50">
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="save-board-title" class="save-btn">Save</button>
+                    <button type="button" id="cancel-board-title" class="cancel-btn">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- New Board Modal -->
+    <div id="new-board-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="close-new-board-modal">&times;</span>
+            <h2>Create New Board</h2>
+            <form id="new-board-form">
+                <div class="form-group">
+                    <label for="new-board-title-input">Board Title:</label>
+                    <input type="text" id="new-board-title-input" required maxlength="50" placeholder="Enter board title">
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="create-board" class="save-btn">Create Board</button>
+                    <button type="button" id="cancel-new-board" class="cancel-btn">Cancel</button>
+                </div>
+            </form>
         </div>
     </div>
 

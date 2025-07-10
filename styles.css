@@ -29,6 +29,128 @@ h1 {
     text-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
+/* Board Header Styles */
+.board-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.board-title-section {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.board-title-section h1 {
+    margin: 0;
+    color: white;
+    font-size: 1.8rem;
+    font-weight: 600;
+    text-align: left;
+}
+
+.edit-title-btn {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    font-size: 1rem;
+}
+
+.edit-title-btn:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.board-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.board-selector {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.board-selector select {
+    padding: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 0.9rem;
+    min-width: 150px;
+}
+
+.board-selector select option {
+    background: #2c3e50;
+    color: white;
+}
+
+.control-btn {
+    padding: 0.5rem 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+.control-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.delete-btn:hover {
+    background: rgba(231, 76, 60, 0.2);
+    border-color: rgba(231, 76, 60, 0.5);
+    color: #e74c3c;
+}
+
+.board-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Responsive adjustments for board header */
+@media (max-width: 768px) {
+    .board-header {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: stretch;
+    }
+    
+    .board-controls {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .board-selector,
+    .board-actions {
+        justify-content: center;
+    }
+    
+    .board-selector select {
+        min-width: auto;
+        flex: 1;
+    }
+}
+
 .board {
     display: flex;
     gap: 10px; /* Reduced from 20px to 10px */
